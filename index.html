@@ -273,6 +273,9 @@ ol.sb{list-style:none;margin:0;padding:0;display:grid;gap:6px}
   .racer .rx{display:none}
   .row2{grid-template-columns:1fr}
 }
+
+#home .hero h1{font-size:clamp(34px,4.4vw,58px);line-height:1}
+#intro .hero h1{line-height:1}
 </style>
 </head>
 <body>
@@ -708,7 +711,10 @@ function onState(){
     const key=st.phase+":"+(st.nonce||"")+":"+st.round;
     if(L.sbClosed!==key) showOverlay(key);
   } else {
-    hideOverlay(); if(!G || G.over) showLobby();
+    // instructor sent everyone back to the lobby: abort any round in progress (no score, no explosion)
+    hideOverlay(); $("countOv").hidden=true; L.sbClosed=null;
+    if(G && !G.over){ G.over=true; $("stamp").hidden=true; }
+    G=null; showLobby();
   }
 }
 
@@ -795,7 +801,18 @@ $("hStart").onclick=()=>{
 };
 $("hEnd").onclick=()=>{ const st=L.state; if(st&&st.phase==="playing") NET.set(stPath(),{...st,phase:"scoreboard"}); };
 $("hFinal").onclick=()=>{ const st=L.state||{}; NET.set(stPath(),{...st,phase:"final"}); };
-$("hLobby").onclick=()=>{ const st=L.state||{}; NET.set(stPath(),{...st,phase:"lobby"}); };
+let lobbyArm=0;
+$("hLobby").onclick=()=>{
+  const st=L.state||{};
+  if(st.phase==="playing" && Date.now()-lobbyArm>3000){   // mid-round: ask for a second click
+    lobbyArm=Date.now(); $("hLobby").textContent="CLICK AGAIN: CANCEL ROUND";
+    setTimeout(()=>$("hLobby").textContent="BACK TO LOBBY",3000); return;
+  }
+  lobbyArm=0; $("hLobby").textContent="BACK TO LOBBY";
+  const up={[stPath()]:{...st,phase:"lobby",nonce:"",startAt:0}};
+  if(st.phase==="playing") up[`rooms/${L.code}/results/${rk(st.round)}`]=null;   // a cancelled round doesn't count
+  L.ending=null; NET.update(up).catch(e=>alertHost(netErr(e)));
+};
 let clearArm=0;
 $("hClear").onclick=()=>{
   if(Date.now()-clearArm>3000){ clearArm=Date.now(); $("hClear").textContent="CLICK AGAIN TO CLEAR"; setTimeout(()=>$("hClear").textContent="CLEAR ALL SCORES",3000); return; }
@@ -939,7 +956,7 @@ function cut(i){
     if(G.mod+1>=G.mods.length){ G.frozen=Math.max(0,(G.deadline-G.clock())/1000); $("timer").firstChild.nodeValue=fmtT(G.frozen); $("timer").classList.remove("panic"); }
     saveProg(); pushLive();
     setTimeout(()=>{ SFX.good(); flash("green"); $("stamp").hidden=false; $("bay").querySelectorAll(".cutbtn").forEach(b=>b.disabled=true); },180);
-    setTimeout(()=>{ $("stamp").hidden=true; G.busy=false;
+    setTimeout(()=>{ $("stamp").hidden=true; if(!G) return; G.busy=false;
       if(G.over) return;
       if(G.mod+1>=G.mods.length) return end(true);
       G.mod++; drawLamps(); drawModule(); },1300);

@@ -1,0 +1,1124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bomb Squad: Training</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@400;600;800&display=swap">
+<style>
+/* Layout: one bomb "chassis" panel (timer + lamps) over a 2x2 wire bay; hazard-stripe frame; single committed dark look */
+:root{
+  color-scheme:dark;
+  --bg:#0b1013; --bg2:#121a1e; --panel:#182227; --panel2:#1f2b31; --line:#2c3b42;
+  --fg:#e7eef0; --muted:#8fa3aa; --teal:#2ee6c9; --amber:#ffb627; --red:#ff3b3b; --green:#3df58a;
+  --led-off:#3a1414;
+  --display:'Syne',system-ui,sans-serif; --body:'DM Sans',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#16252b 0%,var(--bg) 60%) fixed,var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+[hidden]{display:none!important}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.logo{font-family:var(--display);font-weight:800;font-size:clamp(20px,3vw,26px);letter-spacing:.02em}
+.logo b{color:var(--amber)} .logo i{font-style:normal;color:var(--teal)}
+.iconbtn{background:var(--panel);border:1px solid var(--line);color:var(--fg);border-radius:8px;padding:8px 12px;font-family:var(--mono);font-size:13px}
+
+/* ---------- hazard frame ---------- */
+.hazard{padding:10px;border-radius:16px;background:repeating-linear-gradient(-45deg,var(--amber) 0 18px,#141414 18px 36px)}
+.hazard>.inner{background:linear-gradient(180deg,var(--panel2),var(--panel));border-radius:9px;padding:clamp(16px,3vw,32px)}
+
+/* ---------- intro ---------- */
+.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:28px;align-items:start}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(40px,7vw,78px);line-height:.95;margin:0 0 14px;text-wrap:balance}
+.hero h1 .r{color:var(--red);text-shadow:0 0 24px rgba(255,59,59,.45)}
+.lede{color:var(--muted);max-width:52ch;margin:0 0 20px}
+.rules{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.rules li{display:flex;gap:12px;align-items:flex-start;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.rules .k{font-family:var(--mono);font-weight:800;color:var(--amber);min-width:56px}
+.field{display:grid;gap:6px;margin-bottom:18px}
+.field label{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}
+.field input{background:#0a0f11;border:2px solid var(--line);border-radius:10px;color:var(--fg);padding:14px 16px;font-family:var(--mono);font-size:20px;font-weight:600;width:100%}
+.rounds{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.rgroup{grid-column:1/-1;font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--teal);margin-top:6px}
+.squadtotal{font-family:var(--mono);font-size:13px;color:var(--muted);margin:0 0 16px}
+.squadtotal b{color:var(--amber);font-size:16px}
+.board{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin:0 0 22px}
+.cell{background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;font-family:var(--mono)}
+.cell .rn{font-size:10px;color:var(--muted);letter-spacing:.1em}
+.cell .bp{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
+.cell.has{border-color:var(--green)} .cell.has .bp{color:var(--green)}
+.cell.now{box-shadow:0 0 0 2px var(--amber)}
+.boardhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--muted);margin-bottom:8px}
+.boardhead b{color:var(--amber);font-size:18px;letter-spacing:0}
+.rbtn{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;text-align:left;background:var(--bg2);border:2px solid var(--line);border-radius:10px;color:var(--fg);padding:10px 14px}
+.rbtn .n{font-family:var(--display);font-weight:800;font-size:22px;color:var(--amber);width:28px}
+.rbtn{padding:8px 10px!important;gap:8px!important}.rbtn .t{font-weight:700;font-size:14px;line-height:1.2;display:block}.rbtn .s{display:block;font-size:12px;color:var(--muted);font-weight:400;line-height:1.3}
+.rbtn>span:nth-child(2){min-width:0}
+.rbtn .tag{font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:3px 8px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}
+.rbtn[aria-pressed="true"]{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,182,39,.15)}
+.rbtn[aria-pressed="true"] .tag{color:#1a1200;background:var(--amber);border-color:var(--amber)}
+.rbtn:disabled{opacity:.45;cursor:not-allowed}
+.big{width:100%;border:0;border-radius:12px;padding:18px;font-family:var(--display);font-weight:800;font-size:22px;letter-spacing:.06em;background:var(--red);color:#fff;box-shadow:0 6px 0 #8f1010,0 0 30px rgba(255,59,59,.35);transition:transform .08s}
+.big:active{transform:translateY(4px);box-shadow:0 2px 0 #8f1010}
+.big.alt{background:var(--teal);color:#04201b;box-shadow:0 6px 0 #0f7a69}
+.err{color:var(--red);font-size:14px;min-height:1.4em;margin:6px 0 0}
+
+/* ---------- bomb chassis ---------- */
+.chassis{display:grid;grid-template-columns:1fr auto 1fr;gap:16px;align-items:center}
+.meta{font-family:var(--mono);font-size:13px;color:var(--muted);display:grid;gap:2px}
+.meta strong{color:var(--fg);font-size:16px;font-family:var(--display);letter-spacing:.02em}
+.timerbox{background:#050505;border:3px solid #333;border-radius:10px;padding:8px 22px;box-shadow:inset 0 0 20px rgba(255,0,0,.15)}
+.timer{font-family:var(--mono);font-weight:800;font-size:clamp(46px,8vw,84px);line-height:1;color:var(--red);text-shadow:0 0 12px rgba(255,59,59,.85),0 0 30px rgba(255,59,59,.4);font-variant-numeric:tabular-nums;letter-spacing:.04em;position:relative}
+.timer.panic{animation:panic .5s steps(2) infinite}
+@keyframes panic{50%{opacity:.35}}
+.penalty{position:absolute;right:-6px;top:-8px;font-size:22px;color:var(--amber);text-shadow:none;animation:floatup 1.1s ease-out forwards;pointer-events:none}
+@keyframes floatup{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-36px)}}
+.strikes{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.strikes span.lbl{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.12em;margin-right:4px}
+.strike{width:34px;height:34px;border-radius:50%;background:var(--led-off);border:2px solid #4a1d1d;display:grid;place-items:center;font-family:var(--mono);font-weight:800;color:#5c2a2a}
+.strike.on{background:var(--red);border-color:#ff8a8a;color:#fff;box-shadow:0 0 16px var(--red)}
+.modules{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}
+.lamp{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;color:var(--muted);background:#0a0f11;border:1px solid var(--line);border-radius:99px;padding:5px 12px 5px 6px}
+.lamp i{width:14px;height:14px;border-radius:50%;background:#26343a}
+.lamp.cur{color:var(--fg);border-color:var(--amber)} .lamp.cur i{background:var(--amber);box-shadow:0 0 10px var(--amber);animation:blink 1s infinite}
+.lamp.done{color:var(--green)} .lamp.done i{background:var(--green);box-shadow:0 0 10px var(--green)}
+@keyframes blink{50%{opacity:.3}}
+
+/* ---------- instruction LCD ---------- */
+.lcd{margin:20px 0;background:#0c1a12;border:2px solid #24452f;border-radius:10px;padding:16px 20px;font-family:var(--mono);color:#9dffb9;box-shadow:inset 0 0 30px rgba(61,245,138,.08)}
+.lcd .ey{font-size:12px;letter-spacing:.16em;color:#5fbf7f}
+.lcd .p{font-size:clamp(18px,2.4vw,24px);font-weight:600;margin-top:4px;color:#d7ffe3}
+.lcd .target{display:inline-block;margin-top:10px;background:#03100a;border:1px dashed #3d8a58;border-radius:6px;padding:6px 14px;font-size:clamp(20px,2.8vw,28px);font-weight:800;color:var(--green);white-space:pre}
+
+/* ---------- wire bay ---------- */
+.bay{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{min-width:0;background:var(--bg2);border:2px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,opacity .3s}
+.wire{position:relative;height:46px;display:flex;align-items:center;padding:0 10px;background:linear-gradient(180deg,#0e1518,#141d21);border-bottom:1px solid var(--line)}
+.term{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d8d8d8,#6b6b6b);border:2px solid #333;flex:none;position:relative;z-index:2}
+.term::after{content:"";position:absolute;inset:8px 3px;background:#3a3a3a;border-radius:2px;transform:rotate(45deg)}
+.half{flex:1;height:12px;background:var(--wc);border-radius:6px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.28),inset 0 3px 0 rgba(255,255,255,.25);transition:transform .45s cubic-bezier(.3,1.6,.5,1)}
+.half.l{transform-origin:left center;margin-right:-1px;border-radius:6px 0 0 6px}
+.half.r{transform-origin:right center;border-radius:0 6px 6px 0}
+.card.cut .half.l{transform:rotate(9deg) scaleX(.93)}
+.card.cut .half.r{transform:rotate(-9deg) scaleX(.93)}
+.card.cut .half.l::after,.card.cut .half.r::before{content:"";position:absolute}
+.colorname{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.16em;background:#0b1013;color:var(--wc);padding:2px 8px;border-radius:4px;border:1px solid var(--wc);z-index:3}
+.spark{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px;border-radius:50%;background:#fff6c2;opacity:0;z-index:4}
+.card.cut .spark{animation:spark .5s ease-out}
+@keyframes spark{0%{opacity:1;box-shadow:0 0 0 0 #ffd36b,0 0 20px 8px #ffb627}100%{opacity:0;box-shadow:0 0 0 30px rgba(255,182,39,0),0 0 0 0 transparent}}
+pre.code{margin:0;padding:14px 16px;font-family:var(--mono);font-size:clamp(14px,1.6vw,16px);line-height:1.6;overflow-x:auto;flex:1;counter-reset:ln;tab-size:4}
+pre.code .ln{display:block}
+pre.code .ln::before{counter-increment:ln;content:counter(ln);display:inline-block;width:1.6em;margin-right:12px;color:#3f545c;text-align:right}
+.kw{color:#ff7ab8}.st{color:var(--amber)}.nu{color:#9ad1ff}.bi{color:var(--teal)}.cm{color:#5d7179}
+.cutbtn{margin:0 14px 14px;border:2px solid var(--wc);background:transparent;color:var(--fg);border-radius:10px;padding:11px;font-family:var(--mono);font-weight:800;letter-spacing:.1em;font-size:14px;display:flex;align-items:center;justify-content:center;gap:10px;transition:background .15s,color .15s}
+.cutbtn:hover:not(:disabled){background:var(--wc);color:#0b1013}
+.cutbtn:disabled{cursor:not-allowed;opacity:.5}
+.card.wrong{border-color:var(--red);opacity:.55}
+.card.wrong .cutbtn{border-color:var(--red);color:var(--red)}
+.card.right{border-color:var(--green);box-shadow:0 0 0 3px rgba(61,245,138,.2)}
+.stampwrap{position:relative}
+.stamp{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;z-index:5}
+.stamp span{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,54px);color:var(--green);border:5px solid var(--green);border-radius:12px;padding:6px 22px;transform:rotate(-8deg);background:rgba(11,16,19,.85);animation:stamp .35s cubic-bezier(.2,1.8,.4,1)}
+@keyframes stamp{from{transform:rotate(-8deg) scale(2.2);opacity:0}}
+
+/* ---------- fx ---------- */
+.shake{animation:shake .4s}
+@keyframes shake{20%{transform:translate(-8px,3px)}40%{transform:translate(7px,-4px)}60%{transform:translate(-5px,2px)}80%{transform:translate(4px,-1px)}}
+.flash{position:fixed;inset:0;pointer-events:none;z-index:40;opacity:0}
+.flash.red{background:rgba(255,40,40,.35);animation:fl .45s}
+.flash.green{background:rgba(61,245,138,.22);animation:fl .5s}
+@keyframes fl{0%{opacity:1}100%{opacity:0}}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:45;width:100%;height:100%}
+.overlay{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(5,8,10,.82)}
+.count{font-family:var(--display);font-weight:800;font-size:min(40vw,260px);color:var(--amber);text-shadow:0 0 50px rgba(255,182,39,.6);animation:pop .9s ease-out}
+@keyframes pop{from{transform:scale(1.8);opacity:0}30%{opacity:1}to{transform:scale(.9)}}
+.boom{position:fixed;inset:0;z-index:48;pointer-events:none;background:radial-gradient(circle,#fff 0%,#ffd36b 25%,#ff6a00 50%,#7a0a00 80%,#000 100%);animation:boom 1.4s ease-out forwards}
+@keyframes boom{0%{opacity:0;transform:scale(.2)}8%{opacity:1;transform:scale(1.4)}100%{opacity:0;transform:scale(2)}}
+
+/* ---------- results ---------- */
+.result h2{font-family:var(--display);font-weight:800;font-size:clamp(42px,8vw,90px);line-height:.95;margin:0 0 6px;text-wrap:balance}
+.result.win h2{color:var(--green);text-shadow:0 0 30px rgba(61,245,138,.4)}
+.result.lose h2{color:var(--red);text-shadow:0 0 30px rgba(255,59,59,.5)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:22px 0}
+.stat{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.stat .l{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted);text-transform:uppercase}
+.stat .v{font-family:var(--mono);font-weight:800;font-size:28px;font-variant-numeric:tabular-nums}
+.score{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px;background:#050505;border:2px solid var(--amber);border-radius:12px;padding:16px 20px}
+.score .l{font-family:var(--mono);color:var(--amber);letter-spacing:.14em;font-size:13px}
+.score .v{font-family:var(--mono);font-weight:800;font-size:clamp(40px,7vw,64px);color:var(--amber);text-shadow:0 0 18px rgba(255,182,39,.5);font-variant-numeric:tabular-nums}
+.score .team{font-family:var(--display);font-weight:800;font-size:22px}
+.score .pts{font-family:var(--mono);font-weight:800;font-size:20px;color:var(--fg)}
+.rec{display:inline-block;margin-top:6px;font-family:var(--mono);font-size:12px;font-weight:800;letter-spacing:.14em;color:#04201b;background:var(--green);padding:3px 10px;border-radius:99px;animation:blink 1s 3}
+.formula{font-family:var(--mono);font-size:13px;color:var(--muted);margin:8px 0 22px}
+.btnrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:28px}
+.btnrow .big{font-size:17px;padding:16px 10px}
+.debrief h3{font-family:var(--display);font-size:24px;margin:0 0 4px}
+.debrief>p{color:var(--muted);margin:0 0 14px}
+details{background:var(--bg2);border:1px solid var(--line);border-radius:10px;margin-bottom:10px}
+summary{cursor:pointer;padding:12px 16px;font-weight:700;display:flex;gap:10px;align-items:center}
+summary .ok{font-family:var(--mono);font-size:12px;padding:2px 8px;border-radius:99px}
+summary .ok.y{background:rgba(61,245,138,.15);color:var(--green)} summary .ok.n{background:rgba(255,59,59,.15);color:var(--red)}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px 14px}
+.dw{min-width:0;border:1px solid var(--line);border-left:6px solid var(--wc);border-radius:8px;background:#0c1215}
+.dw.is{border-color:var(--green);border-left-color:var(--wc)}
+.dw pre.code{font-size:13px;padding:10px 12px}
+.dw .out{font-family:var(--mono);font-size:13px;padding:8px 12px;border-top:1px solid var(--line);white-space:pre-wrap}
+.dw .out b{color:var(--teal)}
+.dw .note{font-size:14px;color:var(--muted);padding:0 12px 10px}
+.dw .badge{font-family:var(--mono);font-size:11px;font-weight:800;color:var(--green);padding:8px 12px 0;letter-spacing:.12em}
+
+@media (max-width:760px){
+  .hero,.bay,.dgrid,.btnrow{grid-template-columns:1fr}
+  .chassis{grid-template-columns:1fr 1fr}
+  .timerbox{grid-column:1/-1;grid-row:1;justify-self:center}
+  .stats{grid-template-columns:1fr 1fr}
+  .rounds{grid-template-columns:1fr}
+  .board{grid-template-columns:repeat(5,1fr)}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+/* ---------- live-mode additions ---------- */
+.linkish{background:none;border:0;color:inherit;padding:0;text-align:left;cursor:pointer}
+.topright{display:flex;gap:10px;align-items:center}
+.roomtag{font-family:var(--mono);font-size:13px;padding:7px 12px;border-radius:8px;border:1px solid var(--teal);color:var(--teal);letter-spacing:.12em}
+.h1sm{font-size:clamp(36px,6vw,64px)!important}
+.note{font-size:14px;color:var(--amber);margin:0}
+.opts{display:grid;gap:14px;align-content:start}
+.opt{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:10px}
+.opt h3{margin:0;font-family:var(--display);font-size:20px}
+.opt p{margin:0;color:var(--muted);font-size:14px}
+.opt .field{margin:0}
+.opt .field input{font-size:18px;padding:11px 12px}
+.row2{display:grid;grid-template-columns:130px minmax(0,1fr);gap:10px}
+.codeinput{text-transform:uppercase;letter-spacing:.3em;text-align:center}
+.big.sm{font-size:18px;padding:14px}
+.big:disabled{opacity:.4;cursor:not-allowed}
+.ey{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--teal)}
+.lcd .ey2{font-size:12px;letter-spacing:.16em;color:#5fbf7f}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* lobby */
+.lobbybox{text-align:center;display:grid;gap:14px;justify-items:center;padding-block:28px}
+.lobbybox .lede{margin:0 auto}
+.pulse{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3a4a50,#11181b);border:4px solid #333;position:relative;animation:pulse 1.6s infinite}
+.pulse::after{content:"";position:absolute;width:18px;height:18px;border-radius:50%;background:var(--red);top:-6px;right:14px;box-shadow:0 0 14px var(--red);animation:blink 1s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,59,59,.55)}70%{box-shadow:0 0 0 26px rgba(255,59,59,0)}100%{box-shadow:0 0 0 0 rgba(255,59,59,0)}}
+.lobbybox h2{font-family:var(--display);font-weight:800;font-size:clamp(32px,6vw,58px);margin:0;line-height:1;text-wrap:balance}
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:820px}
+.chip{font-family:var(--mono);font-size:13px;padding:6px 12px;border-radius:99px;background:var(--bg2);border:1px solid var(--line);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.me{border-color:var(--amber);color:var(--amber)}
+/* result (live) */
+.livewait{display:flex;gap:12px;align-items:center;background:#0c1a12;border:1px solid #24452f;border-radius:10px;padding:14px 16px;margin:0 0 22px;font-weight:600;color:#bfffd2}
+.livewait .dot{width:12px;height:12px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:blink 1s infinite;flex:none}
+/* host */
+.hosttop{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:center}
+.hcode{font-family:var(--mono);font-weight:800;font-size:clamp(64px,12vw,140px);line-height:1;color:var(--amber);letter-spacing:.12em;text-shadow:0 0 30px rgba(255,182,39,.4);margin:4px 0 8px}
+.joinrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.joinurl{font-family:var(--mono);font-size:14px;color:var(--fg);word-break:break-all;min-width:0}
+.hclock{display:grid;justify-items:end;gap:6px}
+.hclock .timer{font-size:clamp(40px,7vw,72px)}
+.hphase{font-family:var(--mono);letter-spacing:.14em;font-size:13px;color:var(--teal)}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0}
+.controls select{background:#0a0f11;color:var(--fg);border:2px solid var(--line);border-radius:10px;padding:11px;font-family:var(--mono);font-size:15px;max-width:100%}
+.cbtn{border:2px solid var(--line);background:var(--panel);color:var(--fg);border-radius:10px;padding:11px 15px;font-family:var(--mono);font-weight:800;letter-spacing:.06em;font-size:14px;cursor:pointer}
+.cbtn:hover:not(:disabled){border-color:var(--teal)}
+.cbtn.go{background:var(--red);border-color:var(--red);color:#fff}
+.cbtn.warn{border-color:var(--amber);color:var(--amber)}
+.cbtn:disabled{opacity:.4;cursor:not-allowed}
+.sectionh{font-family:var(--display);font-size:22px;font-weight:700;margin:24px 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.sectionh span{font-family:var(--mono);font-size:13px;color:var(--muted);font-weight:400}
+.race{display:grid;gap:8px}
+.racer{display:grid;grid-template-columns:minmax(0,1fr) auto 4ch minmax(130px,auto);gap:14px;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.racer .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pips{display:flex;gap:5px}.pips i{width:24px;height:12px;border-radius:3px;background:#26343a}.pips i.on{background:var(--green);box-shadow:0 0 8px var(--green)}
+.rx{font-family:var(--mono);color:var(--red);font-weight:800;letter-spacing:.1em}
+.rs{font-family:var(--mono);font-weight:800;text-align:right;font-size:14px}
+.rs.done{color:var(--green)} .rs.boom{color:var(--red)} .rs.wait{color:var(--muted)} .rs.play{color:var(--amber)}
+.racer.empty{display:block;color:var(--muted)}
+#hostSb{margin-bottom:10px}
+/* scoreboard */
+.sbov{position:fixed;inset:0;z-index:55;background:rgba(5,8,10,.96);overflow:auto;padding-block:max(24px,env(safe-area-inset-top,0px)) 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.sbpanel{max-width:1040px;margin:0 auto}
+.sbhead h2{font-family:var(--display);font-weight:800;font-size:clamp(40px,8vw,84px);margin:4px 0 18px;line-height:1;color:var(--amber);text-shadow:0 0 30px rgba(255,182,39,.35)}
+.sbgrid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:22px}
+.sbgrid.solo{grid-template-columns:minmax(0,1fr)}
+.sbgrid h3{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--teal);margin:0 0 8px;text-transform:uppercase;font-weight:600}
+ol.sb{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.sb .row{display:grid;grid-template-columns:2.2em minmax(0,1fr) auto 5ch;gap:12px;align-items:center;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 14px;animation:rowin .45s both;animation-delay:var(--d)}
+@keyframes rowin{from{opacity:0;transform:translateX(-24px)}}
+.sb .rk{font-family:var(--display);font-weight:800;font-size:22px;color:var(--muted)}
+.sb .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sb .nm em{font-style:normal;font-family:var(--mono);font-size:11px;color:#1a1200;background:var(--amber);padding:1px 6px;border-radius:4px;margin-left:6px;vertical-align:2px}
+.sb .tm{font-family:var(--mono);color:var(--muted);font-size:14px}
+.sb .tm .bm{color:var(--red)}
+.sb .pt{font-family:var(--mono);font-weight:800;font-size:20px;text-align:right;font-variant-numeric:tabular-nums}
+.sb .p1{border-color:#ffd23f;background:linear-gradient(90deg,rgba(255,210,63,.18),var(--bg2) 70%)} .sb .p1 .rk{color:#ffd23f}
+.sb .p2{border-color:#cfd8dc} .sb .p2 .rk{color:#cfd8dc}
+.sb .p3{border-color:#d08a4e} .sb .p3 .rk{color:#d08a4e}
+.sb .me{box-shadow:0 0 0 2px var(--amber)}
+.sb .empty{display:block;color:var(--muted)}
+.sbbig .sb .row{padding:14px 18px}.sbbig .sb .nm{font-size:20px}.sbbig .sb .pt{font-size:26px}
+.sbclose{margin-top:22px}
+@media (max-width:760px){
+  .hosttop,.sbgrid{grid-template-columns:minmax(0,1fr)}
+  .hclock{justify-items:start}
+  .racer{grid-template-columns:minmax(0,1fr) auto}
+  .racer .rx{display:none}
+  .row2{grid-template-columns:1fr}
+}
+
+#home .hero h1{font-size:clamp(34px,4.4vw,58px);line-height:1}
+#intro .hero h1{line-height:1}
+
+/* ---------- v3: clocks, levels, 4 misses ---------- */
+.board{grid-template-columns:repeat(5,1fr)!important}
+.clocks{display:flex;gap:8px;flex-wrap:wrap}
+.clk{display:grid;gap:1px;justify-items:center;min-width:92px;background:var(--bg2);border:2px solid var(--line);border-radius:10px;color:var(--fg);padding:8px 12px;cursor:pointer}
+.clk b{font-family:var(--display);font-weight:800;font-size:14px;letter-spacing:.06em}
+.clk span{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.clk[aria-pressed="true"]{border-color:var(--amber);background:rgba(255,182,39,.12);box-shadow:0 0 0 3px rgba(255,182,39,.15)}
+.clk[aria-pressed="true"] span{color:var(--amber)}
+.clk:disabled{opacity:.45;cursor:not-allowed}
+.clockrow{display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.clockrow .clocks{flex-direction:column}
+.clockrow .clk{min-width:120px;grid-template-columns:auto auto;gap:10px;justify-content:space-between}
+.tlevel{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--amber);text-align:center;margin-top:4px}
+.rounds{grid-template-columns:1fr!important;gap:6px!important}
+.lvrow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.lv{display:grid;justify-items:center;gap:0;background:var(--bg2);border:2px solid var(--line);border-radius:9px;color:var(--fg);padding:6px 4px;cursor:pointer}
+.lv b{font-family:var(--display);font-weight:800;font-size:18px;color:var(--amber)}
+.lv span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.lv[aria-pressed="true"]{border-color:var(--amber);box-shadow:0 0 0 3px rgba(255,182,39,.15)}
+.selinfo{display:grid;gap:2px;margin:4px 0 12px;font-size:14px}
+.selinfo span{color:var(--muted);font-size:13px}
+.strike{width:30px!important;height:30px!important}
+.lvrow{grid-template-columns:repeat(2,1fr)!important} .lv b{font-size:22px}
+.board{grid-template-columns:repeat(2,1fr)!important}
+.bankinfo{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+@media (max-width:760px){ .clockrow{justify-content:flex-start} .clockrow .clocks{flex-direction:row} .clockrow .clk{min-width:0} }
+</style>
+</head>
+<body>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="flash" id="flash"></div>
+
+<div class="wrap">
+  <header class="topbar">
+    <button class="logo linkish" id="homeBtn" aria-label="Bomb Squad home"><b>BOMB</b> SQUAD <i>// training.py</i></button>
+    <div class="topright">
+      <span class="roomtag" id="roomTag" hidden></span>
+      <button class="iconbtn" id="muteBtn" aria-pressed="false">SOUND: ON</button>
+    </div>
+  </header>
+
+  <!-- ================= HOME ================= -->
+  <section class="screen" id="home">
+    <div class="hazard"><div class="inner hero">
+      <div>
+        <h1>A device is armed.<br><span class="r">Read the code.</span><br>Cut the right wire.</h1>
+        <p class="lede">Each module shows four wires, and each wire has a Python snippet. Work out what every snippet does, then cut the one wire that matches the instruction. Your score is the time left on the clock. Each miss costs 15 seconds, and four misses sets off the bomb. <b>Training edition:</b> every game pulls 5 modules at random from a bank of 50 per level, so no two games are the same.</p>
+        <p class="note" id="liveNote" hidden>Live class games run from your instructor's link. Practice mode works right here.</p>
+      </div>
+      <div class="opts">
+        <div class="opt">
+          <h3>Join a live game</h3>
+          <p>Use the room code on the projector. Pick a fun squad name, not your real name.</p>
+          <div class="row2">
+            <div class="field"><label for="joinCode">Room code</label><input id="joinCode" class="codeinput" maxlength="4" placeholder="ABCD" autocomplete="off" autocapitalize="characters"></div>
+            <div class="field"><label for="joinName">Squad name</label><input id="joinName" maxlength="24" placeholder="The Null Pointers" autocomplete="off"></div>
+          </div>
+          <button class="big sm" id="joinBtn">JOIN GAME</button>
+        </div>
+        <div class="opt">
+          <h3>Instructor</h3>
+          <p>Host a room, start each round for everyone at once, and put the scoreboard on the projector.</p>
+          <button class="big alt sm" id="hostBtn">HOST A NEW GAME</button>
+          <button class="cbtn" id="resumeBtn" hidden>RESUME ROOM</button>
+        </div>
+        <div class="opt">
+          <h3>Practice solo</h3>
+          <p>Play any round on your own. Nothing is sent anywhere.</p>
+          <button class="cbtn" id="practiceBtn">PRACTICE MODE &rarr;</button>
+        </div>
+        <p class="err" id="homeErr" role="alert"></p>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ================= PRACTICE INTRO ================= -->
+  <section class="screen" id="intro" hidden>
+    <div class="hazard"><div class="inner hero">
+      <div>
+        <h1 class="h1sm">Practice<br><span class="r">mode.</span></h1>
+        <p class="lede">Pick Level I or II and a clock. Every game draws 5 fresh modules from that level's bank of 50, and you won't see repeats until you've worked through the bank. Your best score per level is saved on this computer.</p>
+        <ul class="rules">
+          <li><span class="k">CUT</span><span>Right wire: the module is defused and the next one arms.</span></li>
+          <li><span class="k">−15s</span><span>Wrong wire: you take a miss and lose 15 seconds off the clock.</span></li>
+          <li><span class="k">4 X</span><span>Four misses, or the clock hits zero (penalties included): the bomb explodes.</span></li>
+          <li><span class="k">SCORE</span><span>The time left on the clock when you cut the last wire. Explode and you score 0.</span></li>
+        </ul>
+      </div>
+      <div>
+        <div class="field">
+          <label for="teamName">Squad name</label>
+          <input id="teamName" maxlength="24" placeholder="e.g. The Null Pointers" autocomplete="off">
+        </div>
+        <div class="field"><label>Clock</label></div>
+        <div class="clocks" id="pClocks" role="group" aria-label="Round clock"></div>
+        <div class="field" style="margin-top:14px"><label>Choose level</label></div>
+        <div class="rounds" id="roundList"></div>
+        <p class="selinfo" id="selInfo"></p>
+        <p class="squadtotal" id="squadTotal"></p>
+        <button class="big" id="startBtn">ARM THE DEVICE</button>
+        <p class="err" id="introErr" role="alert"></p>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ================= LOBBY (student, live) ================= -->
+  <section class="screen" id="lobby" hidden>
+    <div class="hazard"><div class="inner lobbybox">
+      <div class="ey" id="lbCode">ROOM ----</div>
+      <div class="pulse" aria-hidden="true"></div>
+      <h2 id="lbTitle">You're in.</h2>
+      <p class="lede" id="lbMsg">Waiting for your instructor to start the round.</p>
+      <div class="ey" id="lbCount">SQUADS IN THE ROOM</div>
+      <div class="chips" id="lbSquads"></div>
+    </div></div>
+  </section>
+
+  <!-- ================= GAME ================= -->
+  <section class="screen" id="game" hidden>
+    <div class="hazard" id="bombFrame"><div class="inner">
+      <div class="chassis">
+        <div class="meta"><span>SQUAD</span><strong id="gTeam">—</strong><span id="gRound">ROUND 1</span></div>
+        <div class="timerbox"><div class="timer" id="timer" role="timer" aria-live="off">3:00</div><div class="tlevel" id="gLevel">GRASSHOPPER</div></div>
+        <div class="strikes" aria-label="Strikes"><span class="lbl">MISSES</span><div class="strike" id="s0">X</div><div class="strike" id="s1">X</div><div class="strike" id="s2">X</div><div class="strike" id="s3">X</div></div>
+      </div>
+      <div class="modules" id="lamps"></div>
+    </div></div>
+
+    <div class="lcd" aria-live="polite">
+      <div class="ey2" id="lcdEy">MODULE 1 / 5</div>
+      <div class="p" id="lcdP">—</div>
+      <div class="target" id="lcdT" hidden></div>
+    </div>
+
+    <div class="stampwrap">
+      <div class="bay" id="bay"></div>
+      <div class="stamp" id="stamp" hidden><span>DEFUSED</span></div>
+    </div>
+  </section>
+
+  <!-- ================= RESULT ================= -->
+  <section class="screen" id="result" hidden>
+    <div class="hazard"><div class="inner result" id="resBox">
+      <h2 id="resTitle">DEVICE DEFUSED</h2>
+      <p class="lede" id="resSub"></p>
+      <div class="stats">
+        <div class="stat"><div class="l">Modules</div><div class="v" id="rMods">0/5</div></div>
+        <div class="stat"><div class="l">Time left</div><div class="v" id="rTime">0:00</div></div>
+        <div class="stat"><div class="l">Misses</div><div class="v" id="rStrikes">0</div></div>
+        <div class="stat"><div class="l">Round</div><div class="v" id="rRound">1</div></div>
+      </div>
+      <div class="score"><div><div class="l">FINAL SCORE · TIME LEFT</div><div class="team" id="rTeam">—</div><div class="rec" id="rRec" hidden>NEW SQUAD RECORD</div></div><div style="text-align:right"><div class="v" id="rScore">0:00.0</div><div class="pts" id="rPts">0 pts</div></div></div>
+      <p class="formula" id="rFormula"></p>
+      <div class="livewait" id="liveWait" hidden><span class="dot"></span><span id="liveWaitTxt">Score locked in. Waiting for the other squads…</span></div>
+      <div id="boardWrap">
+        <div class="boardhead"><span id="boardTitle">BEST PER LEVEL</span><span>TOTAL <b id="bTotal">0</b> pts</span></div>
+        <div class="board" id="board"></div>
+      </div>
+      <div class="btnrow" id="btnRow">
+        <button class="big" id="nextBtn">NEXT ROUND &rarr;</button>
+        <button class="big alt" id="replayBtn">REPLAY (NEW QUESTIONS)</button>
+        <button class="big alt" id="menuBtn">BACK TO MENU</button>
+      </div>
+      <div class="debrief">
+        <h3>Debrief</h3>
+        <p>What every wire actually printed. Open a module to see why.</p>
+        <div id="debrief"></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- ================= HOST DASHBOARD ================= -->
+  <section class="screen" id="host" hidden>
+    <div class="hazard"><div class="inner">
+      <div class="hosttop">
+        <div>
+          <div class="ey">ROOM CODE · JOIN AT</div>
+          <div class="hcode" id="hCode">----</div>
+          <div class="joinrow"><span class="joinurl" id="hUrl"></span><button class="cbtn" id="copyBtn">COPY LINK</button></div>
+        </div>
+        <div class="hclock">
+          <div class="hphase" id="hPhase">LOBBY</div>
+          <div class="clockrow"><div class="clocks" id="hClocks" role="group" aria-label="Round clock"></div>
+          <div class="timerbox"><div class="timer" id="hTimer">3:00</div></div></div>
+        </div>
+      </div>
+      <div class="controls">
+        <label class="sr" for="hostRound">Round to start</label>
+        <select id="hostRound"></select>
+        <button class="cbtn go" id="hStart">START ROUND</button>
+        <button class="cbtn warn" id="hEnd">END ROUND NOW</button>
+        <button class="cbtn" id="hFinal">SHOW OVERALL STANDINGS</button>
+        <button class="cbtn" id="hLobby">BACK TO LOBBY</button>
+        <button class="cbtn" id="hClear">CLEAR ALL SCORES</button>
+      </div>
+      <div id="hostSb" hidden></div>
+      <div class="sectionh">Squads <span id="hCount">0 squads</span></div>
+      <div class="race" id="race"></div>
+    </div></div>
+  </section>
+</div>
+
+<div class="overlay" id="countOv" hidden><div class="count" id="countNum">3</div></div>
+<div class="sbov" id="sbOv" hidden role="dialog" aria-label="Scoreboard"><div class="sbpanel"><div id="sbContent"></div>
+  <button class="big alt sbclose" id="sbClose">CLOSE · SEE MY DEBRIEF</button></div></div>
+
+<script>
+/* ===== FIREBASE CONFIG: paste the firebaseConfig object from the Firebase console here ===== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDpnzlKkAo_swJD571t2nTOg2Q92uZVM5k",
+  authDomain: "bombsquad-45983.firebaseapp.com",
+  databaseURL: "https://bombsquad-45983-default-rtdb.firebaseio.com",
+  projectId: "bombsquad-45983",
+  storageBucket: "bombsquad-45983.firebasestorage.app",
+  messagingSenderId: "817708861894",
+  appId: "1:817708861894:web:c61e2afa26ce5fe6d18ac7"
+};
+/* ===== ROUND DATA: every snippet output verified by running it in Python ===== */
+const TOPICS = [{"key": "training", "name": "Training", "ch": "Ch.3–4"}];
+const ROUNDS = [{"id":1,"topic":"training","level":"I","name":"Training Device","topics":"operators, strings, range, loops, if/elif, functions","bank":[{"id":"1-01","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(sum(range(5)))","note":"range(5) is 0,1,2,3,4. Their sum is 10.","ok":true,"out":"10"},{"code":"print(5 * 2 ** 2)","note":"** runs before *, so it's 5 * 4 = 20.","ok":false,"out":"20"},{"code":"x = 0\nfor i in range(1, 4):\n    x += i\nprint(x)","note":"range(1, 4) stops before 4: 1+2+3 = 6.","ok":false,"out":"6"},{"code":"print(len(\"ten\") * 3)","note":"len(\"ten\") is 3, and 3 * 3 = 9.","ok":false,"out":"9"}],"target":"10"},{"id":"1-02","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"moob\"[::-1].upper())","note":"[::-1] reverses to \"boom\", then .upper() gives BOOM.","ok":true,"out":"BOOM"},{"code":"print(\"BOOM\"[1:])","note":"[1:] starts at index 1, so the B is skipped.","ok":false,"out":"OOM"},{"code":"print(\"BO\" + \"O\" * 2 + \"M\")","note":"\"O\" * 2 is \"OO\". With the O in \"BO\" that makes three O's.","ok":false,"out":"BOOOM"},{"code":"print(\"boom\".title())","note":".title() capitalizes only the first letter of each word.","ok":false,"out":"Boom"}],"target":"BOOM"},{"id":"1-03","kind":"L","prompt":"Cut the wire that prints exactly 3 lines.","wires":[{"code":"for i in range(3, 6):\n    print(i)","note":"3, 4, 5. The stop value 6 is not included.","ok":true,"out":"3\n4\n5"},{"code":"for i in range(0, 10, 3):\n    print(i)","note":"Step 3 gives 0, 3, 6, 9: four lines.","ok":false,"out":"0\n3\n6\n9"},{"code":"n = 3\nwhile n > 0:\n    print(n)\n    n -= 2","note":"3, then 1, then n becomes -1 and the loop stops: two lines.","ok":false,"out":"3\n1"},{"code":"for c in \"bomb\":\n    print(c)","note":"One line per character, and \"bomb\" has four.","ok":false,"out":"b\no\nm\nb"}]},{"id":"1-04","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"print(\"5\" + str(5))","note":"str(5) turns the number into text, so this joins \"5\" + \"5\".","ok":false,"out":"55"},{"code":"print(int(\"5\") + 5)","note":"int(\"5\") turns the text into a number: 5 + 5 = 10.","ok":false,"out":"10"},{"code":"print(\"5\" * 2)","note":"A string times an int repeats the string.","ok":false,"out":"55"},{"code":"print(\"5\" + 5)","note":"You can't add a str and an int. Python raises a TypeError.","ok":true,"out":"TypeError"}]},{"id":"1-05","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"def check(n):\n    return n % 2 == 0\n\nprint(check(7))","note":"7 % 2 is 1, not 0, so it returns False.","ok":false,"out":"False"},{"code":"def armed(t):\n    return t > 0 and t < 10\n\nprint(armed(10))","note":"10 < 10 is False, so the whole and is False.","ok":false,"out":"False"},{"code":"def safe(a, b=3):\n    return a * b == 12\n\nprint(safe(4))","note":"b uses its default of 3: 4 * 3 == 12 is True.","ok":true,"out":"True"},{"code":"def wire(x):\n    print(x > 1)\n\nprint(wire(5))","note":"TRAP! The function prints True but returns nothing, so the outer print shows None too.","ok":false,"out":"True\nNone"}],"target":"True"},{"id":"1-06","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(15 // 2)","note":"// is floor division: it drops the remainder, so 15 // 2 is 7.","ok":true,"out":"7"},{"code":"print(15 / 2)","note":"/ always gives a float: 7.5.","ok":false,"out":"7.5"},{"code":"print(15 % 2)","note":"% gives the remainder: 15 = 2*7 + 1.","ok":false,"out":"1"},{"code":"print(round(15 / 2))","note":"TRAP! round() sends .5 to the nearest EVEN number, so 7.5 rounds to 8.","ok":false,"out":"8"}],"target":"7"},{"id":"1-07","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(10 / 5)","note":"/ always returns a float, even when it divides evenly.","ok":true,"out":"2.0"},{"code":"print(10 // 5)","note":"// with two ints gives an int: 2, not 2.0.","ok":false,"out":"2"},{"code":"print(2 * 1.5)","note":"Any math with a float gives a float: 3.0.","ok":false,"out":"3.0"},{"code":"print(5 / 2)","note":"5 / 2 is 2.5.","ok":false,"out":"2.5"}],"target":"2.0"},{"id":"1-08","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(3 ** 2)","note":"** is the power operator: 3 squared is 9.","ok":true,"out":"9"},{"code":"print(3 * 2)","note":"* is plain multiplication: 6.","ok":false,"out":"6"},{"code":"print(2 ** 3)","note":"Order matters: 2 cubed is 8.","ok":false,"out":"8"},{"code":"print(-3 ** 2)","note":"TRAP! ** runs before the minus sign, so this is -(3 ** 2) = -9.","ok":false,"out":"-9"}],"target":"9"},{"id":"1-09","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(2 + 3 * 4)","note":"* runs before +: 2 + 12 = 14.","ok":true,"out":"14"},{"code":"print((2 + 3) * 4)","note":"Parentheses go first: 5 * 4 = 20.","ok":false,"out":"20"},{"code":"print(2 * 3 + 4)","note":"2 * 3 is 6, plus 4 is 10.","ok":false,"out":"10"},{"code":"print(20 - 8 // 2)","note":"8 // 2 is 4, and 20 - 4 = 16.","ok":false,"out":"16"}],"target":"14"},{"id":"1-10","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(17 % 5)","note":"17 = 5*3 + 2, so the remainder is 2.","ok":true,"out":"2"},{"code":"print(17 // 5)","note":"// gives how many whole 5s fit in 17: 3.","ok":false,"out":"3"},{"code":"print(-7 // 3)","note":"Floor division rounds DOWN, toward negative infinity: -2.33 becomes -3.","ok":false,"out":"-3"},{"code":"print(10 % 4 * 2)","note":"% and * run left to right: 10 % 4 is 2, then 2 * 2 = 4.","ok":false,"out":"4"}],"target":"2"},{"id":"1-11","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"Python\"[3:])","note":"Start at index 3 (h) and go to the end.","ok":true,"out":"hon"},{"code":"print(\"Python\"[3:5])","note":"The stop index 5 is not included: h, o.","ok":false,"out":"ho"},{"code":"print(\"Python\"[:3])","note":"[:3] is indexes 0, 1, 2.","ok":false,"out":"Pyt"},{"code":"print(\"Python\"[2:5])","note":"Indexes 2, 3, 4: t, h, o.","ok":false,"out":"tho"}],"target":"hon"},{"id":"1-12","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"Python\"[-1])","note":"Index -1 is always the last character.","ok":true,"out":"n"},{"code":"print(\"Python\"[1])","note":"Indexing starts at 0, so index 1 is the second letter.","ok":false,"out":"y"},{"code":"print(\"Python\"[-2])","note":"-2 is the second-to-last character.","ok":false,"out":"o"},{"code":"print(\"Python\"[len(\"Python\")])","note":"len is 6, but the last index is 5. Index 6 crashes.","ok":false,"out":"IndexError"}],"target":"n"},{"id":"1-13","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(len(\"boom! \"))","note":"Spaces count! b, o, o, m, !, and the trailing space make 6.","ok":true,"out":"6"},{"code":"print(len(\"boom!\"))","note":"Four letters plus the ! is 5.","ok":false,"out":"5"},{"code":"print(len(\"tick tock\"))","note":"Eight letters plus one space is 9.","ok":false,"out":"9"},{"code":"print(len(str(1000)))","note":"str(1000) is \"1000\": four characters.","ok":false,"out":"4"}],"target":"6"},{"id":"1-14","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"bam\".upper())","note":".upper() makes every letter uppercase.","ok":true,"out":"BAM"},{"code":"print(\"bam\".capitalize())","note":".capitalize() uppercases only the first letter.","ok":false,"out":"Bam"},{"code":"print(\"BAM\".lower())","note":".lower() makes every letter lowercase.","ok":false,"out":"bam"},{"code":"print(\"bAm\".swapcase())","note":".swapcase() flips each letter's case.","ok":false,"out":"BaM"}],"target":"BAM"},{"id":"1-15","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"banana\".count(\"a\"))","note":"There are three a's in \"banana\".","ok":true,"out":"3"},{"code":"print(\"banana\".find(\"a\"))","note":".find() returns the INDEX of the first match: b is 0, a is 1.","ok":false,"out":"1"},{"code":"print(\"banana\".find(\"n\"))","note":"The first n is at index 2.","ok":false,"out":"2"},{"code":"print(\"banana\".count(\"an\"))","note":"\"an\" appears twice: b-AN-AN-a.","ok":false,"out":"2"}],"target":"3"},{"id":"1-16","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"cat\" in \"concatenate\")","note":"in checks for a substring: con-CAT-enate.","ok":true,"out":"True"},{"code":"print(\"Cat\" in \"concatenate\")","note":"in is case-sensitive. There is no capital C.","ok":false,"out":"False"},{"code":"print(\"cat\" == \"Cat\")","note":"c and C are different characters.","ok":false,"out":"False"},{"code":"print(len(\"cat\") > 3)","note":"len is 3, and 3 > 3 is False.","ok":false,"out":"False"}],"target":"True"},{"id":"1-17","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(not 5 > 3)","note":"5 > 3 is True, and not flips it to False.","ok":true,"out":"False"},{"code":"print(5 > 3 and 3 > 1)","note":"Both sides are True, so and gives True.","ok":false,"out":"True"},{"code":"print(0 == 0.0)","note":"An int and a float with the same value are equal.","ok":false,"out":"True"},{"code":"print(bool(\"False\"))","note":"TRAP! Any non-empty string is truthy, even the text \"False\".","ok":false,"out":"True"}],"target":"False"},{"id":"1-18","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"5\" + \"5\")","note":"+ on two strings joins them.","ok":true,"out":"55"},{"code":"print(5 + 5)","note":"+ on two ints adds them.","ok":false,"out":"10"},{"code":"print(\"5\" * 5)","note":"A string times 5 repeats it five times.","ok":false,"out":"55555"},{"code":"print(int(\"5\" + \"5\") + 1)","note":"\"55\" becomes the number 55, plus 1 is 56.","ok":false,"out":"56"}],"target":"55"},{"id":"1-19","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"print(int(\"3.5\"))","note":"int() can't read a decimal point inside text: ValueError.","ok":true,"out":"ValueError"},{"code":"print(float(\"3.5\"))","note":"float() can read decimal text.","ok":false,"out":"3.5"},{"code":"print(int(3.5))","note":"int() on a float chops off the decimal: 3.","ok":false,"out":"3"},{"code":"print(int(\"35\"))","note":"Plain digits convert fine.","ok":false,"out":"35"}]},{"id":"1-20","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"print(10 / 0)","note":"You can't divide by zero.","ok":true,"out":"ZeroDivisionError"},{"code":"print(0 / 10)","note":"Zero divided by something is fine: 0.0.","ok":false,"out":"0.0"},{"code":"print(10 % 3)","note":"10 = 3*3 + 1.","ok":false,"out":"1"},{"code":"print(0 // 5)","note":"0 // 5 is 0.","ok":false,"out":"0"}]},{"id":"1-21","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"score = 10\nprint(Score)","note":"Python is case-sensitive. Score was never created: NameError.","ok":true,"out":"NameError"},{"code":"score = 10\nprint(\"score\")","note":"Quotes make it a string, so it prints the word score.","ok":false,"out":"score"},{"code":"score = 10\nscore = score + 1\nprint(score)","note":"score is updated to 11.","ok":false,"out":"11"},{"code":"score = \"10\"\nprint(score * 2)","note":"score is a string, so * 2 repeats it.","ok":false,"out":"1010"}]},{"id":"1-22","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"word = \"bomb\"\nword[0] = \"t\"\nprint(word)","note":"Strings are immutable. You can't change one character in place.","ok":true,"out":"TypeError"},{"code":"word = \"bomb\"\nword = \"t\" + word[1:]\nprint(word)","note":"This builds a NEW string and stores it back in word.","ok":false,"out":"tomb"},{"code":"word = \"bomb\"\nprint(word.replace(\"b\", \"t\", 1))","note":"The 1 means replace only the first b.","ok":false,"out":"tomb"},{"code":"word = \"bomb\"\nprint(word[0] * 3)","note":"word[0] is b, repeated 3 times.","ok":false,"out":"bbb"}]},{"id":"1-23","kind":"L","prompt":"Cut the wire that prints exactly 3 lines.","wires":[{"code":"for i in range(1, 7, 2):\n    print(i)","note":"Step 2 from 1: 1, 3, 5. Three lines.","ok":true,"out":"1\n3\n5"},{"code":"for i in range(8, 1, -2):\n    print(i)","note":"Counting down by 2: 8, 6, 4, 2. Four lines.","ok":false,"out":"8\n6\n4\n2"},{"code":"print(\"one\", \"two\", \"three\")","note":"One print call makes one line. Commas become spaces.","ok":false,"out":"one two three"},{"code":"for c in \"hi\":\n    print(c)","note":"\"hi\" has two characters: two lines.","ok":false,"out":"h\ni"}]},{"id":"1-24","kind":"L","prompt":"Cut the wire that prints exactly 2 lines.","wires":[{"code":"print(\"A\", end=\" \")\nprint(\"B\")\nprint(\"C\")","note":"end=\" \" keeps B on the same line as A. Two lines.","ok":true,"out":"A B\nC"},{"code":"print(\"A\")\nprint(\"B\")\nprint(\"C\")","note":"Three prints, three lines.","ok":false,"out":"A\nB\nC"},{"code":"print(\"A\", \"B\", \"C\", sep=\"\\n\")","note":"sep=\"\\n\" puts a newline between each item: three lines.","ok":false,"out":"A\nB\nC"},{"code":"print(\"A\", end=\"\")\nprint(\"B\", end=\"\")\nprint(\"C\")","note":"end=\"\" means no newline, so everything lands on one line.","ok":false,"out":"ABC"}]},{"id":"1-25","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"A\", \"B\", \"C\", sep=\"-\")","note":"sep sets what goes BETWEEN items.","ok":true,"out":"A-B-C"},{"code":"print(\"A\", \"B\", \"C\")","note":"The default sep is a space.","ok":false,"out":"A B C"},{"code":"print(\"A-\" + \"B-\" + \"C-\")","note":"There's an extra dash at the end.","ok":false,"out":"A-B-C-"},{"code":"print(\"ABC\".replace(\"\", \"-\"))","note":"Replacing the empty string puts a dash at every gap, including both ends.","ok":false,"out":"-A-B-C-"}],"target":"A-B-C"},{"id":"1-26","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"n = 0\nwhile n < 10:\n    n += 2\nprint(n)","note":"0, 2, 4, 6, 8, 10. At 10 the condition n < 10 is False.","ok":true,"out":"10"},{"code":"n = 0\nwhile n < 10:\n    n += 3\nprint(n)","note":"0, 3, 6, 9, 12. It overshoots 10.","ok":false,"out":"12"},{"code":"n = 1\nwhile n <= 10:\n    n *= 2\nprint(n)","note":"1, 2, 4, 8, 16. The loop stops once n is past 10.","ok":false,"out":"16"},{"code":"n = 10\nwhile n > 0:\n    n -= 4\nprint(n)","note":"10, 6, 2, -2. It stops below zero.","ok":false,"out":"-2"}],"target":"10"},{"id":"1-27","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"x = 1\nfor i in range(1, 6):\n    x *= i\nprint(x)","note":"1 * 2 * 3 * 4 * 5 = 120.","ok":true,"out":"120"},{"code":"x = 0\nfor i in range(1, 6):\n    x += i\nprint(x)","note":"This adds instead: 1+2+3+4+5 = 15.","ok":false,"out":"15"},{"code":"x = 1\nfor i in range(5):\n    x *= i\nprint(x)","note":"TRAP! range(5) starts at 0, and anything times 0 is 0.","ok":false,"out":"0"},{"code":"x = 1\nfor i in range(1, 5):\n    x *= i\nprint(x)","note":"range(1, 5) stops at 4: 1*2*3*4 = 24.","ok":false,"out":"24"}],"target":"120"},{"id":"1-28","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"t = 50\nif t > 60:\n    print(\"hot\")\nelif t > 40:\n    print(\"medium\")\nelse:\n    print(\"cold\")","note":"50 > 60 is False, then 50 > 40 is True.","ok":true,"out":"medium"},{"code":"t = 50\nif t > 40:\n    print(\"hot\")\nelif t > 20:\n    print(\"medium\")\nelse:\n    print(\"cold\")","note":"The first True condition wins: 50 > 40.","ok":false,"out":"hot"},{"code":"t = 40\nif t > 60:\n    print(\"hot\")\nelif t > 40:\n    print(\"medium\")\nelse:\n    print(\"cold\")","note":"40 > 40 is False, so it falls to else.","ok":false,"out":"cold"},{"code":"t = 50\nif t < 60:\n    print(\"cold\")\nif t > 40:\n    print(\"medium\")","note":"Two separate ifs, not elif. Both run.","ok":false,"out":"cold\nmedium"}],"target":"medium"},{"id":"1-29","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def greet(name):\n    return \"Hello, \" + name + \"!\"\n\nprint(greet(\"Ada\"))","note":"The returned string is printed.","ok":true,"out":"Hello, Ada!"},{"code":"def greet(name):\n    print(\"Hello, \" + name)\n\ngreet(\"Ada\")","note":"No exclamation mark.","ok":false,"out":"Hello, Ada"},{"code":"def greet(name=\"Ada\"):\n    return \"Hello \" + name + \"!\"\n\nprint(greet())","note":"No comma after Hello.","ok":false,"out":"Hello Ada!"},{"code":"def greet(name):\n    return f\"Hello, {name}!\"\n\nprint(greet(\"ada\"))","note":"The name was passed in lowercase.","ok":false,"out":"Hello, ada!"}],"target":"Hello, Ada!"},{"id":"1-30","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"def double(n):\n    return n * 2\n\nprint(double(4))","note":"double returns 8 and print shows it.","ok":true,"out":"8"},{"code":"def double(n):\n    print(n * 2)\n\nprint(double(4))","note":"TRAP! The function prints 8 but returns nothing, so the outer print adds None.","ok":false,"out":"8\nNone"},{"code":"def double(n):\n    return n * 2\n\ndouble(4)","note":"The result is returned but never printed.","ok":false,"out":"(no output)"},{"code":"def double(n):\n    n * 2\n\nprint(double(4))","note":"n * 2 is calculated and thrown away. No return means None.","ok":false,"out":"None"}],"target":"8"},{"id":"1-31","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"def area(w, h):\n    return w * h\n\nprint(area(3))","note":"area needs two arguments but got one: TypeError.","ok":true,"out":"TypeError"},{"code":"def area(w, h=2):\n    return w * h\n\nprint(area(3))","note":"h falls back to its default 2: 3 * 2 = 6.","ok":false,"out":"6"},{"code":"def area(w, h):\n    return w * h\n\nprint(area(h=3, w=2))","note":"Keyword arguments can come in any order.","ok":false,"out":"6"},{"code":"def area(w, h):\n    return w * h\n\nprint(area(\"ab\", 2))","note":"A string times 2 repeats it. No crash.","ok":false,"out":"abab"}]},{"id":"1-32","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(max(3, 7, 5))","note":"max picks the largest: 7.","ok":true,"out":"7"},{"code":"print(min(3, 7, 5))","note":"min picks the smallest: 3.","ok":false,"out":"3"},{"code":"print(abs(-7) + 1)","note":"abs(-7) is 7, plus 1 is 8.","ok":false,"out":"8"},{"code":"print(round(7.49, 0))","note":"TRAP! round() with a second argument returns a float: 7.0.","ok":false,"out":"7.0"}],"target":"7"},{"id":"1-33","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(type(3 / 1))","note":"/ always returns a float.","ok":true,"out":"<class 'float'>"},{"code":"print(type(3 // 1))","note":"// with two ints returns an int.","ok":false,"out":"<class 'int'>"},{"code":"print(type(\"3.0\"))","note":"Quotes make it a string, even if it looks like a number.","ok":false,"out":"<class 'str'>"},{"code":"print(type(3 > 1))","note":"A comparison gives a bool.","ok":false,"out":"<class 'bool'>"}],"target":"<class 'float'>"},{"id":"1-34","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"AB\" * 2)","note":"Repeats the whole string twice.","ok":true,"out":"ABAB"},{"code":"print(\"A\" * 2 + \"B\" * 2)","note":"Each letter is doubled separately.","ok":false,"out":"AABB"},{"code":"print(\"AB\" + \"AB\"[::-1])","note":"[::-1] reverses the second AB.","ok":false,"out":"ABBA"},{"code":"print(\"ABAB\"[:2])","note":"[:2] keeps only the first two characters.","ok":false,"out":"AB"}],"target":"ABAB"},{"id":"1-35","kind":"L","prompt":"Cut the wire that prints exactly 5 lines.","wires":[{"code":"for i in range(10, 20, 2):\n    print(i)","note":"10, 12, 14, 16, 18. Five lines (20 is excluded).","ok":true,"out":"10\n12\n14\n16\n18"},{"code":"for i in range(5, 9):\n    print(i)","note":"5 up to 8: four lines.","ok":false,"out":"5\n6\n7\n8"},{"code":"for i in range(0, 5, 2):\n    print(i)","note":"0, 2, 4: three lines.","ok":false,"out":"0\n2\n4"},{"code":"i = 0\nwhile i <= 5:\n    print(i)\n    i += 1","note":"<= 5 includes 5: 0 through 5 is six lines.","ok":false,"out":"0\n1\n2\n3\n4\n5"}]},{"id":"1-36","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"score = 65\nif score > 70 or score == 65:\n    print(\"pass\")\nelse:\n    print(\"fail\")","note":"or needs only one True side, and score == 65 is True.","ok":true,"out":"pass"},{"code":"score = 65\nif score > 70 and score == 65:\n    print(\"pass\")\nelse:\n    print(\"fail\")","note":"and needs both sides. 65 > 70 is False.","ok":false,"out":"fail"},{"code":"score = 65\nif not score > 60:\n    print(\"pass\")\nelse:\n    print(\"fail\")","note":"65 > 60 is True, and not makes it False.","ok":false,"out":"fail"},{"code":"score = 65\nif 70 <= score <= 100:\n    print(\"pass\")\nelse:\n    print(\"fail\")","note":"A chained comparison: 70 <= 65 is already False.","ok":false,"out":"fail"}],"target":"pass"},{"id":"1-37","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"defuse\".find(\"s\"))","note":"d0 e1 f2 u3 s4: s is at index 4.","ok":true,"out":"4"},{"code":"print(\"defuse\".find(\"e\"))","note":".find() returns the FIRST match, at index 1.","ok":false,"out":"1"},{"code":"print(\"defuse\".rfind(\"e\"))","note":".rfind() searches from the right: the last e is at 5.","ok":false,"out":"5"},{"code":"print(\"defuse\".find(\"z\"))","note":".find() returns -1 when there's no match.","ok":false,"out":"-1"}],"target":"4"},{"id":"1-38","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"  ABC  \".strip().lower())","note":".strip() removes outer spaces, then .lower().","ok":true,"out":"abc"},{"code":"print(\"  ABC  \".lower())","note":"The spaces are still there. Only strip() removes them.","ok":false,"out":"  abc  "},{"code":"print(\"ABC\".lower()[::-1])","note":"[::-1] reverses it.","ok":false,"out":"cba"},{"code":"print(\"abcd\"[:-1].upper())","note":"Right letters, but .upper() makes them capitals.","ok":false,"out":"ABC"}],"target":"abc"},{"id":"1-39","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(int(\"1\" + \"1\"))","note":"\"1\" + \"1\" joins to \"11\", then int() makes it 11.","ok":true,"out":"11"},{"code":"print(int(\"1\") + int(\"1\"))","note":"Both convert to numbers first: 1 + 1 = 2.","ok":false,"out":"2"},{"code":"print(\"1\" + \"1\" * 2)","note":"* runs before +: \"1\" + \"11\" = \"111\".","ok":false,"out":"111"},{"code":"print(1 + 1 * 9)","note":"1 * 9 is 9, plus 1 is 10.","ok":false,"out":"10"}],"target":"11"},{"id":"1-40","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"s = \"fuse\"\nprint(s[4])","note":"fuse has indexes 0 to 3. Index 4 doesn't exist.","ok":true,"out":"IndexError"},{"code":"s = \"fuse\"\nprint(s[-4])","note":"-4 counts back four from the end: f.","ok":false,"out":"f"},{"code":"s = \"fuse\"\nprint(s[1:10])","note":"Slices don't crash when they run past the end.","ok":false,"out":"use"},{"code":"s = \"fuse\"\nprint(s[len(s) - 1])","note":"len(s) - 1 is 3, the last index.","ok":false,"out":"e"}]},{"id":"1-41","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"for i in range(3, 0, -1):\n    print(i)\nprint(\"GO\")","note":"Counts 3, 2, 1, then GO prints once after the loop.","ok":true,"out":"3\n2\n1\nGO"},{"code":"for i in range(3, 0, -1):\n    print(i)\n    print(\"GO\")","note":"GO is indented, so it's inside the loop.","ok":false,"out":"3\nGO\n2\nGO\n1\nGO"},{"code":"for i in range(3, -1, -1):\n    print(i)\nprint(\"GO\")","note":"The stop is -1, so 0 is included.","ok":false,"out":"3\n2\n1\n0\nGO"},{"code":"for i in range(1, 4):\n    print(i)\nprint(\"GO\")","note":"This counts up, not down.","ok":false,"out":"1\n2\n3\nGO"}],"target":"3\n2\n1\nGO"},{"id":"1-42","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"n = 7\nif n % 2 == 1:\n    print(\"Odd\")\nelse:\n    print(\"Even\")","note":"7 % 2 is 1, so the condition is True.","ok":true,"out":"Odd"},{"code":"n = 7\nif n % 2:\n    print(\"Even\")\nelse:\n    print(\"Odd\")","note":"7 % 2 is 1, which is truthy, so the labels are backwards.","ok":false,"out":"Even"},{"code":"n = 7\nif n // 2 == 3:\n    print(\"Even\")\nelse:\n    print(\"Odd\")","note":"7 // 2 is 3, so it prints Even.","ok":false,"out":"Even"},{"code":"n = 7\nprint(\"Odd\" if n % 2 == 0 else \"Even\")","note":"7 % 2 == 0 is False, so it picks Even.","ok":false,"out":"Even"}],"target":"Odd"},{"id":"1-43","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"x = 5\nprint(f\"x={x}\")","note":"The f in front fills in {x}.","ok":true,"out":"x=5"},{"code":"x = 5\nprint(\"x={x}\")","note":"No f, so {x} is printed literally.","ok":false,"out":"x={x}"},{"code":"x = 5\nprint(\"x=\", x)","note":"The comma adds a space between items.","ok":false,"out":"x= 5"},{"code":"x = 5\nprint(f\"x={x+1}\")","note":"The braces hold x + 1, which is 6.","ok":false,"out":"x=6"}],"target":"x=5"},{"id":"1-44","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(True + True)","note":"In math, True acts like 1: 1 + 1 = 2.","ok":true,"out":"2"},{"code":"print(\"True\" + \"True\")","note":"Those are strings, so + joins them.","ok":false,"out":"TrueTrue"},{"code":"print(True or 2)","note":"or stops at the first truthy value, which is True.","ok":false,"out":"True"},{"code":"print(len(\"True\"))","note":"The word True has four letters.","ok":false,"out":"4"}],"target":"2"},{"id":"1-45","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"print(len(12345))","note":"len() doesn't work on an int: TypeError.","ok":true,"out":"TypeError"},{"code":"print(len(str(12345)))","note":"Convert to a string first: five characters.","ok":false,"out":"5"},{"code":"print(len(\"12345\") * 2)","note":"5 * 2 = 10.","ok":false,"out":"10"},{"code":"print(str(12345)[0])","note":"The first character of \"12345\" is 1.","ok":false,"out":"1"}]},{"id":"1-46","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"count = 0\nfor n in range(1, 10):\n    if n % 3 == 0:\n        count += 1\nprint(count)","note":"3, 6 and 9 are multiples of 3.","ok":true,"out":"3"},{"code":"count = 0\nfor n in range(1, 10):\n    if n % 2 == 0:\n        count += 1\nprint(count)","note":"This counts evens: 2, 4, 6, 8.","ok":false,"out":"4"},{"code":"count = 0\nfor n in range(0, 10):\n    if n % 3 == 0:\n        count += 1\nprint(count)","note":"TRAP! 0 % 3 is 0, so 0 counts too: 0, 3, 6, 9.","ok":false,"out":"4"},{"code":"count = 0\nfor n in range(1, 10):\n    if n > 3:\n        count += 1\nprint(count)","note":"4 through 9 is six numbers.","ok":false,"out":"6"}],"target":"3"},{"id":"1-47","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(\"tick\" + \" \" + \"tock\")","note":"The middle string is a space.","ok":true,"out":"tick tock"},{"code":"print(\"tick\" + \"tock\")","note":"+ doesn't add spaces.","ok":false,"out":"ticktock"},{"code":"print(\"tick\", \"tock\", sep=\"\")","note":"sep=\"\" removes the usual space.","ok":false,"out":"ticktock"},{"code":"print(\"tick,\", \"tock\")","note":"The comma inside the quotes is printed too.","ok":false,"out":"tick, tock"}],"target":"tick tock"},{"id":"1-48","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"def boom(t=10):\n    print(t)\n\nboom()\nboom(7)","note":"First call uses the default 10, the second passes 7.","ok":true,"out":"10\n7"},{"code":"def boom(t=10):\n    print(t)\n\nboom(7)\nboom()","note":"Same calls in the opposite order.","ok":false,"out":"7\n10"},{"code":"def boom(t=10):\n    return t\n\nboom()\nprint(boom(7))","note":"The first call's return value is never printed.","ok":false,"out":"7"},{"code":"def boom(t=10):\n    print(t)\n    t = 7\n\nboom()\nboom()","note":"Changing t inside the function doesn't change the default.","ok":false,"out":"10\n10"}],"target":"10\n7"},{"id":"1-49","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"print(5 - 2 * 3)","note":"2 * 3 is 6 first, then 5 - 6 = -1.","ok":true,"out":"-1"},{"code":"print((5 - 2) * 3)","note":"Parentheses first: 3 * 3 = 9.","ok":false,"out":"9"},{"code":"print(-5 // 2)","note":"Floor division rounds down: -2.5 becomes -3.","ok":false,"out":"-3"},{"code":"print(-(-1))","note":"A negative of a negative is positive.","ok":false,"out":"1"}],"target":"-1"},{"id":"1-50","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"n = 0\nwhile n > 5:\n    print(\"Loop\")\n    n += 1\nprint(\"Done\")","note":"0 > 5 is False from the start, so the loop body never runs.","ok":true,"out":"Done"},{"code":"n = 5\nwhile n > 4:\n    print(\"Loop\")\n    n -= 1\nprint(\"Done\")","note":"The loop runs once (n is 5), then n is 4 and it stops.","ok":false,"out":"Loop\nDone"},{"code":"n = 0\nwhile n < 2:\n    n += 1\nprint(\"Done\" * n)","note":"n ends at 2, so Done is repeated twice.","ok":false,"out":"DoneDone"},{"code":"n = 0\nif n:\n    print(\"Done\")\nelse:\n    print(\"Wait\")","note":"0 is falsy, so else runs.","ok":false,"out":"Wait"}],"target":"Done"}]},{"id":2,"topic":"training","level":"II","name":"Training Device II","topics":"nested loops, break/continue, loop else, scope, arguments, recursion","bank":[{"id":"2-01","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"total = 0\nfor n in range(1, 6):\n    total += n\nprint(total)","note":"1+2+3+4+5 = 15. range(1, 6) stops before 6.","ok":true,"out":"15"},{"code":"print(30 // 2 + 1)","note":"30 // 2 is 15, then + 1 makes 16.","ok":false,"out":"16"},{"code":"print(len(\"fifteen\") + 7)","note":"\"fifteen\" has 7 letters: 7 + 7 = 14.","ok":false,"out":"14"},{"code":"x = 1\nwhile x < 15:\n    x *= 2\nprint(x)","note":"x doubles 1, 2, 4, 8, 16. The loop stops once x is 16.","ok":false,"out":"16"}],"target":"15"},{"id":"2-02","kind":"L","prompt":"Cut the wire that prints exactly 4 lines.","wires":[{"code":"for i in range(10, 0, -3):\n    print(i)","note":"Counting down by 3: 10, 7, 4, 1. Four lines.","ok":true,"out":"10\n7\n4\n1"},{"code":"for i in range(2, 8, 2):\n    print(i)","note":"2, 4, 6. 8 is the stop value, so it's excluded: three lines.","ok":false,"out":"2\n4\n6"},{"code":"i = 0\nwhile i < 12:\n    i += 2\n    print(i)","note":"i is increased BEFORE printing: 2, 4, 6, 8, 10, 12. Six lines.","ok":false,"out":"2\n4\n6\n8\n10\n12"},{"code":"for i in range(5):\n    if i == 3:\n        break\n    print(i)","note":"break exits the loop when i hits 3, so only 0, 1, 2 print.","ok":false,"out":"0\n1\n2"}]},{"id":"2-03","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"count = 0\nfor i in range(3):\n    for j in range(2):\n        count += 1\nprint(count)","note":"The inner loop runs 2 times for each of 3 outer passes: 3 × 2 = 6.","ok":true,"out":"6"},{"code":"count = 0\nfor i in range(6):\n    if i % 2 == 0:\n        continue\n    count += 1\nprint(count)","note":"continue skips the even numbers, so only 1, 3, 5 are counted: 3.","ok":false,"out":"3"},{"code":"print(len(str(123456)) + 1)","note":"str(123456) is \"123456\", six characters, + 1 = 7.","ok":false,"out":"7"},{"code":"n = 0\nfor c in \"banana\":\n    if c == \"a\":\n        n += 1\nprint(n)","note":"\"banana\" has three a's.","ok":false,"out":"3"}],"target":"6"},{"id":"2-04","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"def greet(name):\n    return \"Hi \" + name\n\nprint(greet())","note":"greet needs one argument and got none: TypeError.","ok":true,"out":"TypeError"},{"code":"def add(a, b=2):\n    return a + b\n\nprint(add(1))","note":"b falls back to its default 2: 1 + 2 = 3.","ok":false,"out":"3"},{"code":"def total(*nums):\n    return sum(nums)\n\nprint(total(1, 2, 3))","note":"*nums collects any number of arguments into a tuple: sum is 6.","ok":false,"out":"6"},{"code":"def shout(word):\n    return word.upper()\n\nprint(shout(word=\"hey\"))","note":"Calling with a keyword argument is fine: HEY.","ok":false,"out":"HEY"}]},{"id":"2-05","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"x = 5\ndef change():\n    x = 10\n    print(x)\n\nchange()\nprint(x)","note":"The x inside the function is a NEW local variable. The global x stays 5.","ok":true,"out":"10\n5"},{"code":"x = 5\ndef change():\n    global x\n    x = 10\n    print(x)\n\nchange()\nprint(x)","note":"global x means the function changes the outer x, so both prints show 10.","ok":false,"out":"10\n10"},{"code":"x = 5\ndef change(x):\n    return x * 2\n\nprint(change(x))\nprint(x * 2)","note":"Both lines print 10.","ok":false,"out":"10\n10"},{"code":"def change():\n    x = 10\n    return x\n\nprint(change())\nprint(change() - 4)","note":"10, then 10 - 4 = 6.","ok":false,"out":"10\n6"}],"target":"10\n5"},{"id":"2-06","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"c = 0\nfor i in range(4):\n    for j in range(3):\n        c += 1\nprint(c)","note":"The inner loop runs 3 times for each of 4 outer passes: 4 x 3 = 12.","ok":true,"out":"12"},{"code":"c = 0\nfor i in range(4):\n    for j in range(i):\n        c += 1\nprint(c)","note":"The inner loop runs 0, 1, 2, then 3 times: 6.","ok":false,"out":"6"},{"code":"c = 0\nfor i in range(4):\n    c += 1\nfor j in range(3):\n    c += 1\nprint(c)","note":"These loops are NOT nested. They run one after the other: 4 + 3 = 7.","ok":false,"out":"7"},{"code":"c = 0\nfor i in range(1, 4):\n    for j in range(1, 4):\n        c += 1\nprint(c)","note":"range(1, 4) has 3 values: 3 x 3 = 9.","ok":false,"out":"9"}],"target":"12"},{"id":"2-07","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"for i in range(1, 4):\n    print(\"*\" * i)","note":"i is 1, 2, 3, so the rows grow by one star.","ok":true,"out":"*\n**\n***"},{"code":"for i in range(3):\n    print(\"*\" * i)","note":"TRAP! The first i is 0, and \"*\" * 0 is an empty line.","ok":false,"out":"\n*\n**"},{"code":"for i in range(3, 0, -1):\n    print(\"*\" * i)","note":"Counting down, so the triangle is upside down.","ok":false,"out":"***\n**\n*"},{"code":"for i in range(1, 4):\n    for j in range(i):\n        print(\"*\")","note":"Each star gets its own print, so its own line: 6 lines.","ok":false,"out":"*\n*\n*\n*\n*\n*"}],"target":"*\n**\n***"},{"id":"2-08","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"for n in range(1, 10):\n    if n * n > 10:\n        break\nprint(n)","note":"1, 4, 9 are not > 10. At n = 4, 16 > 10, so the loop breaks and n stays 4.","ok":true,"out":"4"},{"code":"for n in range(1, 10):\n    if n * n > 10:\n        continue\nprint(n)","note":"continue doesn't stop the loop. n finishes at 9.","ok":false,"out":"9"},{"code":"n = 1\nwhile n * n <= 10:\n    n += 1\nprint(n - 1)","note":"n stops at 4, and the print subtracts 1.","ok":false,"out":"3"},{"code":"for n in range(1, 10):\n    if n * n >= 16:\n        break\nprint(n - 1)","note":"It breaks at n = 4, then prints 4 - 1.","ok":false,"out":"3"}],"target":"4"},{"id":"2-09","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"for i in range(10):\n    if i % 2 == 0:\n        continue\n    print(i, end=\"\")","note":"continue skips the evens. end=\"\" keeps the odds together.","ok":true,"out":"13579"},{"code":"for i in range(10):\n    if i % 2 == 1:\n        continue\n    print(i, end=\"\")","note":"This skips the odds instead.","ok":false,"out":"02468"},{"code":"for i in range(10):\n    if i % 2 == 0:\n        break\n    print(i, end=\"\")","note":"i starts at 0, which is even, so the loop breaks before printing anything.","ok":false,"out":"(no output)"},{"code":"for i in range(1, 10, 2):\n    print(i, end=\" \")","note":"end=\" \" puts spaces between the digits.","ok":false,"out":"1 3 5 7 9 "}],"target":"13579"},{"id":"2-10","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"count = 0\ndef tick():\n    count += 1\n\ntick()\nprint(count)","note":"Assigning to count inside the function makes it local, but it has no value yet: UnboundLocalError.","ok":true,"out":"UnboundLocalError"},{"code":"count = 0\ndef tick():\n    global count\n    count += 1\n\ntick()\nprint(count)","note":"global lets the function change the outer count.","ok":false,"out":"1"},{"code":"count = 0\ndef tick(count):\n    count += 1\n    return count\n\nprint(tick(count))","note":"count is a parameter here, so it's a normal local variable.","ok":false,"out":"1"},{"code":"count = 0\ndef tick():\n    print(count + 1)\n\ntick()","note":"READING a global is fine. Only assigning to it causes trouble.","ok":false,"out":"1"}]},{"id":"2-11","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"x = 3\ndef f():\n    print(x)\n\nf()\nprint(x)","note":"The function reads the global x. Nothing changes it.","ok":true,"out":"3\n3"},{"code":"x = 3\ndef f():\n    x = 4\n    print(x)\n\nf()\nprint(x)","note":"The x inside f is a separate local variable.","ok":false,"out":"4\n3"},{"code":"x = 3\ndef f(x):\n    x += 1\n    print(x)\n\nf(x * 2)\nprint(x)","note":"The parameter starts at 6 and becomes 7. The global stays 3.","ok":false,"out":"7\n3"},{"code":"def f():\n    x = 3\n    print(x)\n\nf()\nprint(x)","note":"x only exists inside f. The last print crashes.","ok":false,"out":"3\nNameError"}],"target":"3\n3"},{"id":"2-12","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def power(base, exp=2):\n    return base ** exp\n\nprint(power(2, 3))","note":"2 ** 3 = 8.","ok":true,"out":"8"},{"code":"def power(base, exp=2):\n    return base ** exp\n\nprint(power(3))","note":"exp defaults to 2: 3 ** 2 = 9.","ok":false,"out":"9"},{"code":"def power(base, exp=2):\n    return base ** exp\n\nprint(power(exp=2, base=4))","note":"Keywords match by name: 4 ** 2 = 16.","ok":false,"out":"16"},{"code":"def power(base, exp=2):\n    return base ** exp\n\nprint(power(2))","note":"2 ** 2 = 4.","ok":false,"out":"4"}],"target":"8"},{"id":"2-13","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"def f(a, b):\n    return a - b\n\nprint(f(a=5, 2))","note":"A positional argument can't come after a keyword argument. Python won't even run it.","ok":true,"out":"SyntaxError"},{"code":"def f(a, b):\n    return a - b\n\nprint(f(5, b=2))","note":"Positional first, then keyword: fine. 5 - 2 = 3.","ok":false,"out":"3"},{"code":"def f(a, b):\n    return a - b\n\nprint(f(b=5, a=2))","note":"a is 2 and b is 5: 2 - 5 = -3.","ok":false,"out":"-3"},{"code":"def f(a, b=1):\n    return a - b\n\nprint(f(5))","note":"b defaults to 1: 5 - 1 = 4.","ok":false,"out":"4"}]},{"id":"2-14","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"def f(a=1, b):\n    return a + b\n\nprint(f(2, 3))","note":"Parameters with defaults must come AFTER the ones without.","ok":true,"out":"SyntaxError"},{"code":"def f(a, b=1):\n    return a + b\n\nprint(f(2))","note":"b uses its default: 2 + 1 = 3.","ok":false,"out":"3"},{"code":"def f(a, b=1):\n    return a + b\n\nprint(f(2, 3))","note":"Passing b overrides the default: 2 + 3 = 5.","ok":false,"out":"5"},{"code":"def f(a=1, b=1):\n    return a + b\n\nprint(f())","note":"Both defaults: 1 + 1 = 2.","ok":false,"out":"2"}]},{"id":"2-15","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def total(*nums):\n    t = 0\n    for n in nums:\n        t += n\n    return t\n\nprint(total(1, 2, 3, 4))","note":"*nums collects all four arguments: 1+2+3+4 = 10.","ok":true,"out":"10"},{"code":"def total(*nums):\n    t = 0\n    for n in nums:\n        t += n\n    return t\n\nprint(total())","note":"No arguments, so the loop never runs: 0.","ok":false,"out":"0"},{"code":"def count(*nums):\n    return len(nums)\n\nprint(count(1, 2, 3, 4))","note":"This counts the arguments instead of adding them.","ok":false,"out":"4"},{"code":"def total(*nums):\n    return nums[0] + nums[-1]\n\nprint(total(1, 2, 3, 4))","note":"Only the first and last: 1 + 4 = 5.","ok":false,"out":"5"}],"target":"10"},{"id":"2-16","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"for i in range(3):\n    print(i)\nelse:\n    print(\"done\")","note":"A for loop's else runs when the loop finishes without break.","ok":true,"out":"0\n1\n2\ndone"},{"code":"for i in range(3):\n    if i == 1:\n        break\n    print(i)\nelse:\n    print(\"done\")","note":"break at i = 1 skips the else.","ok":false,"out":"0"},{"code":"for i in range(3):\n    print(i)\n    if i == 2:\n        break\nelse:\n    print(\"done\")","note":"All three print, but the break on the last pass still skips else.","ok":false,"out":"0\n1\n2"},{"code":"for i in range(4):\n    print(i)\nelse:\n    print(\"done\")","note":"range(4) prints one extra number.","ok":false,"out":"0\n1\n2\n3\ndone"}],"target":"0\n1\n2\ndone"},{"id":"2-17","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"n = 0\nwhile n < 5:\n    if n == 3:\n        print(\"found\")\n        break\n    n += 1\nelse:\n    print(\"missing\")","note":"n reaches 3, prints found, and break skips the else.","ok":true,"out":"found"},{"code":"n = 0\nwhile n < 5:\n    if n == 7:\n        print(\"found\")\n        break\n    n += 1\nelse:\n    print(\"missing\")","note":"n never reaches 7, so the loop ends normally and else runs.","ok":false,"out":"missing"},{"code":"n = 0\nwhile n < 5:\n    n += 1\nelse:\n    print(\"found\" if n == 3 else \"missing\")","note":"By the time else runs, n is 5.","ok":false,"out":"missing"},{"code":"n = 0\nwhile n < 5:\n    if n == 3:\n        print(\"found\")\n    n += 1\nelse:\n    print(\"missing\")","note":"No break, so the else runs too.","ok":false,"out":"found\nmissing"}],"target":"found"},{"id":"2-18","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def first_odd(limit):\n    for n in range(limit):\n        if n % 2 == 1:\n            return n\n\nprint(first_odd(10))","note":"return exits as soon as it finds 1.","ok":true,"out":"1"},{"code":"def first_odd(limit):\n    for n in range(limit):\n        if n % 2 == 1:\n            return n\n\nprint(first_odd(1))","note":"range(1) is just 0, so no odd is found and the function returns None.","ok":false,"out":"None"},{"code":"def last_odd(limit):\n    for n in range(limit):\n        if n % 2 == 1:\n            odd = n\n    return odd\n\nprint(last_odd(10))","note":"The loop keeps going, so odd ends as the last one: 9.","ok":false,"out":"9"},{"code":"def first_odd(limit):\n    for n in range(limit):\n        if n % 2 == 1:\n            return n\n        return -1\n\nprint(first_odd(10))","note":"TRAP! return -1 is inside the loop, so it fires on the very first pass (n = 0).","ok":false,"out":"-1"}],"target":"1"},{"id":"2-19","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def f(n):\n    if n <= 1:\n        return 1\n    return n * f(n - 1)\n\nprint(f(3))","note":"3 * 2 * 1 = 6. The function calls itself until n is 1.","ok":true,"out":"6"},{"code":"def f(n):\n    if n <= 1:\n        return 1\n    return n + f(n - 1)\n\nprint(f(4))","note":"This adds: 4 + 3 + 2 + 1 = 10.","ok":false,"out":"10"},{"code":"def f(n):\n    if n <= 1:\n        return 1\n    return n * f(n - 1)\n\nprint(f(4))","note":"4 * 3 * 2 * 1 = 24.","ok":false,"out":"24"},{"code":"def f(n):\n    if n <= 0:\n        return 0\n    return n * f(n - 1)\n\nprint(f(3))","note":"The base case returns 0, and anything times 0 is 0.","ok":false,"out":"0"}],"target":"6"},{"id":"2-20","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"def countdown(n):\n    if n == 0:\n        return \"GO\"\n    return countdown(n - 2)\n\nprint(countdown(5))","note":"5, 3, 1, -1... it skips 0 and never stops: RecursionError.","ok":true,"out":"RecursionError"},{"code":"def countdown(n):\n    if n == 0:\n        return \"GO\"\n    return countdown(n - 2)\n\nprint(countdown(6))","note":"6, 4, 2, 0. It lands on 0.","ok":false,"out":"GO"},{"code":"def countdown(n):\n    if n <= 0:\n        return \"GO\"\n    return countdown(n - 2)\n\nprint(countdown(5))","note":"<= 0 catches -1, so it stops.","ok":false,"out":"GO"},{"code":"def countdown(n):\n    if n == 0:\n        return \"GO\"\n    return countdown(n - 1)\n\nprint(countdown(5))","note":"Stepping by 1 always hits 0.","ok":false,"out":"GO"}]},{"id":"2-21","kind":"L","prompt":"Cut the wire that prints exactly 4 lines.","wires":[{"code":"for i in range(2):\n    for j in range(2):\n        print(i, j)","note":"2 x 2 = 4 lines.","ok":true,"out":"0 0\n0 1\n1 0\n1 1"},{"code":"for i in range(2):\n    for j in range(3):\n        print(i, j)","note":"2 x 3 = 6 lines.","ok":false,"out":"0 0\n0 1\n0 2\n1 0\n1 1\n1 2"},{"code":"for i in range(2):\n    print(i)\n    for j in range(2):\n        print(j)","note":"Each outer pass prints 1 + 2 lines: 6 total.","ok":false,"out":"0\n0\n1\n1\n0\n1"},{"code":"for i in range(3):\n    for j in range(i):\n        print(i, j)","note":"The inner loop runs 0, 1, then 2 times: 3 lines.","ok":false,"out":"1 0\n2 0\n2 1"}]},{"id":"2-22","kind":"L","prompt":"Cut the wire that prints exactly 3 lines.","wires":[{"code":"for i in range(10):\n    if i == 3:\n        break\n    print(i)","note":"Breaks before printing 3: 0, 1, 2.","ok":true,"out":"0\n1\n2"},{"code":"for i in range(5):\n    if i == 3:\n        continue\n    print(i)","note":"continue skips only 3: four lines.","ok":false,"out":"0\n1\n2\n4"},{"code":"i = 0\nwhile True:\n    i += 1\n    print(i)\n    if i > 3:\n        break","note":"It prints 4 before checking i > 3: four lines.","ok":false,"out":"1\n2\n3\n4"},{"code":"for i in range(2, 10, 4):\n    print(i)","note":"2, then 6. 10 is the stop: two lines.","ok":false,"out":"2\n6"}]},{"id":"2-23","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def add(a, b):\n    return a + b\n\ndef twice(x):\n    return add(x, x)\n\nprint(twice(2) + 1)","note":"twice(2) is add(2, 2) = 4, plus 1 = 5.","ok":true,"out":"5"},{"code":"def add(a, b):\n    return a + b\n\ndef twice(x):\n    return add(x, x)\n\nprint(twice(add(1, 2)))","note":"add(1, 2) is 3, and twice(3) is 6.","ok":false,"out":"6"},{"code":"def add(a, b):\n    return a + b\n\ndef twice(x):\n    return add(x, x)\n\nprint(add(twice(1), 2))","note":"twice(1) is 2, and add(2, 2) is 4.","ok":false,"out":"4"},{"code":"def add(a, b):\n    return a + b\n\ndef twice(x):\n    return add(x, x)\n\nprint(twice(2.5))","note":"Adding floats gives a float: 5.0.","ok":false,"out":"5.0"}],"target":"5"},{"id":"2-24","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"def hi():\n    print(\"Hi\")\n\nprint(hi())","note":"The function prints Hi, then returns None, which the outer print shows.","ok":true,"out":"Hi\nNone"},{"code":"def hi():\n    return \"Hi\"\n\nprint(hi())","note":"It returns Hi instead of printing it, so there's no None.","ok":false,"out":"Hi"},{"code":"def hi():\n    print(\"Hi\")\n    return\n\nhi()","note":"It returns None, but nobody prints the return value.","ok":false,"out":"Hi"},{"code":"def hi():\n    return print(\"Hi\")\n\nx = hi()","note":"x holds None, but x is never printed.","ok":false,"out":"Hi"}],"target":"Hi\nNone"},{"id":"2-25","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"total = 0\nn = 0\nwhile n < 6:\n    n += 1\n    if n == 6:\n        continue\n    total += n\nprint(total)","note":"Adds 1 through 5. continue skips the 6: 15.","ok":true,"out":"15"},{"code":"total = 0\nfor n in range(1, 5):\n    total += n\nprint(total)","note":"1+2+3+4 = 10. 5 is excluded.","ok":false,"out":"10"},{"code":"total = 0\nn = 0\nwhile n < 6:\n    total += n\n    n += 2\nprint(total)","note":"0 + 2 + 4 = 6.","ok":false,"out":"6"},{"code":"total = 0\nfor n in range(1, 6):\n    if n == 3:\n        break\n    total += n\nprint(total)","note":"break at 3, so only 1 + 2 are added.","ok":false,"out":"3"}],"target":"15"},{"id":"2-26","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"s = \"\"\nfor c in \"ABC\":\n    s += c * 2\nprint(s)","note":"Each letter is doubled and added to the end.","ok":true,"out":"AABBCC"},{"code":"s = \"\"\nfor c in \"ABC\":\n    s = c * 2\nprint(s)","note":"= replaces s every time, so only the last letter survives.","ok":false,"out":"CC"},{"code":"s = \"\"\nfor c in \"ABC\":\n    s += c\nprint(s * 2)","note":"Builds ABC, then repeats the whole thing.","ok":false,"out":"ABCABC"},{"code":"s = \"\"\nfor c in \"ABC\":\n    s = c * 2 + s\nprint(s)","note":"Each pair goes on the FRONT, so the order is reversed.","ok":false,"out":"CCBBAA"}],"target":"AABBCC"},{"id":"2-27","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"word = \"defuse\"\ni = 0\nfor c in word:\n    if c == \"u\":\n        break\n    i += 1\nprint(i)","note":"d, e, f are counted, then break at u: 3.","ok":true,"out":"3"},{"code":"word = \"defuse\"\ni = 0\nfor c in word:\n    if c == \"u\":\n        continue\n    i += 1\nprint(i)","note":"continue skips u but counts the other five letters.","ok":false,"out":"5"},{"code":"print(\"defuse\".index(\"e\"))","note":"The first e is at index 1.","ok":false,"out":"1"},{"code":"word = \"defuse\"\nfor i in range(len(word)):\n    if word[i] == \"e\":\n        pos = i\nprint(pos)","note":"pos is overwritten each time, so it ends at the last e: 5.","ok":false,"out":"5"}],"target":"3"},{"id":"2-28","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"def beep():\n    return \"beep\"\n\nprint(beep(\"x\"))","note":"beep takes no arguments, but got one: TypeError.","ok":true,"out":"TypeError"},{"code":"def beep(sound=\"beep\"):\n    return sound\n\nprint(beep(\"x\"))","note":"The argument replaces the default.","ok":false,"out":"x"},{"code":"def beep(*s):\n    return \"beep\"\n\nprint(beep(\"x\", \"y\"))","note":"*s accepts any number of arguments.","ok":false,"out":"beep"},{"code":"def beep():\n    return \"beep\"\n\nprint(beep() * 2)","note":"The returned string is repeated.","ok":false,"out":"beepbeep"}]},{"id":"2-29","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"print(armed())\n\ndef armed():\n    return True","note":"Python runs top to bottom. armed doesn't exist yet when it's called.","ok":true,"out":"NameError"},{"code":"def armed():\n    return status\n\nstatus = True\nprint(armed())","note":"status exists by the time armed() is actually called.","ok":false,"out":"True"},{"code":"def check():\n    return armed()\n\ndef armed():\n    return True\n\nprint(check())","note":"Both functions are defined before check() runs.","ok":false,"out":"True"},{"code":"def armed():\n    return True\n\nprint(not armed())","note":"not flips True to False.","ok":false,"out":"False"}]},{"id":"2-30","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"for i in range(1, 3):\n    print(i, i * 2, i * 3)","note":"i is 1, then 2. Each line shows i, 2i, 3i.","ok":true,"out":"1 2 3\n2 4 6"},{"code":"for i in range(1, 3):\n    print(i, i + 1, i + 2)","note":"This adds instead of multiplying.","ok":false,"out":"1 2 3\n2 3 4"},{"code":"for i in range(1, 4):\n    print(i, i * 2)","note":"Three rows of two numbers.","ok":false,"out":"1 2\n2 4\n3 6"},{"code":"for i in range(2):\n    print(i, i * 2, i * 3)","note":"range(2) starts at 0.","ok":false,"out":"0 0 0\n1 2 3"}],"target":"1 2 3\n2 4 6"},{"id":"2-31","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"n = 100\nsteps = 0\nwhile n > 1:\n    n //= 2\n    steps += 1\nprint(steps)","note":"100, 50, 25, 12, 6, 3, 1: six halvings.","ok":true,"out":"6"},{"code":"n = 100\nsteps = 0\nwhile n > 1:\n    n /= 2\n    steps += 1\nprint(steps)","note":"/ keeps the decimals (12.5, 6.25...), so it takes one more step.","ok":false,"out":"7"},{"code":"n = 32\nsteps = 0\nwhile n > 1:\n    n //= 2\n    steps += 1\nprint(steps)","note":"32, 16, 8, 4, 2, 1: five steps.","ok":false,"out":"5"},{"code":"n = 100\nsteps = 0\nwhile n >= 1:\n    n //= 2\n    steps += 1\nprint(steps)","note":">= 1 lets it halve once more, down to 0.","ok":false,"out":"7"}],"target":"6"},{"id":"2-32","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"n = 1\ndef bump():\n    global n\n    n = n + 1\n    print(n)\n\nbump()\nprint(n)","note":"global means the function changes the outer n.","ok":true,"out":"2\n2"},{"code":"n = 1\ndef bump():\n    n = 2\n    print(n)\n\nbump()\nprint(n)","note":"Without global, this n is local. The outer n stays 1.","ok":false,"out":"2\n1"},{"code":"n = 1\ndef bump(n):\n    n = n + 1\n    return n\n\nprint(bump(n))\nprint(n)","note":"The parameter is a copy of the value. The outer n is untouched.","ok":false,"out":"2\n1"},{"code":"n = 1\ndef bump():\n    global n\n    n = n + 1\n\nbump()\nbump()\nprint(n)","note":"Two bumps, and only one print.","ok":false,"out":"3"}],"target":"2\n2"},{"id":"2-33","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"x = 0\nfor i in range(5, 0, -2):\n    x -= 1\nprint(x)","note":"5, 3, 1: three passes.","ok":true,"out":"-3"},{"code":"x = 0\nfor i in range(5, 0, -1):\n    x -= 1\nprint(x)","note":"5, 4, 3, 2, 1: five passes.","ok":false,"out":"-5"},{"code":"x = 0\nfor i in range(0, 5, -1):\n    x -= 1\nprint(x)","note":"You can't count DOWN from 0 to 5, so the range is empty.","ok":false,"out":"0"},{"code":"x = 0\nfor i in range(-3, 0):\n    x += 1\nprint(x)","note":"-3, -2, -1 is three passes, but x goes up.","ok":false,"out":"3"}],"target":"-3"},{"id":"2-34","kind":"Z","prompt":"Cut the wire that prints NOTHING at all.","wires":[{"code":"for i in range(5, 5):\n    print(i)","note":"Start equals stop, so the range is empty.","ok":true,"out":"(no output)"},{"code":"for i in range(5, 6):\n    print(i)","note":"One value: 5.","ok":false,"out":"5"},{"code":"i = 5\nwhile i >= 5:\n    print(i)\n    i -= 1","note":"5 >= 5 is True once.","ok":false,"out":"5"},{"code":"for i in range(5, 0, -5):\n    print(i)","note":"Starts at 5. The next value, 0, is the stop.","ok":false,"out":"5"}]},{"id":"2-35","kind":"Z","prompt":"Cut the wire that prints NOTHING at all.","wires":[{"code":"def show(x):\n    return x * 2\n\nshow(4)","note":"The function returns 8, but nothing prints it.","ok":true,"out":"(no output)"},{"code":"def show(x):\n    print(x * 2)\n\nshow(4)","note":"The print is inside the function.","ok":false,"out":"8"},{"code":"def show(x):\n    return x * 2\n\nprint(show(0))","note":"0 * 2 is 0, and it IS printed.","ok":false,"out":"0"},{"code":"def show(x):\n    return x\n\nprint(show(None))","note":"Printing None shows the word None.","ok":false,"out":"None"}]},{"id":"2-36","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def tag(a, b):\n    return a + b.upper()\n\nprint(tag(\"x\", \"y\"))","note":"a is x, and b is y in uppercase.","ok":true,"out":"xY"},{"code":"def tag(a, b):\n    return a + b.upper()\n\nprint(tag(b=\"x\", a=\"y\"))","note":"Keywords match by name, so a is y and b is x.","ok":false,"out":"yX"},{"code":"def tag(a, b):\n    return a + b.upper()\n\nprint(tag(\"X\", \"y\"))","note":"a was already uppercase.","ok":false,"out":"XY"},{"code":"def tag(a, b):\n    return a + b.upper()\n\nprint(tag(\"x\", \"y\").lower())","note":".lower() undoes the uppercase Y.","ok":false,"out":"xy"}],"target":"xY"},{"id":"2-37","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"for s in \"12a\":\n    print(int(s))","note":"It prints 1 and 2, then int(\"a\") crashes.","ok":true,"out":"1\n2\nValueError"},{"code":"for s in \"123\":\n    print(int(s))","note":"Every character is a digit.","ok":false,"out":"1\n2\n3"},{"code":"for s in \"12a\":\n    print(s * 2)","note":"Repeating a string never crashes.","ok":false,"out":"11\n22\naa"},{"code":"for s in \"12a\":\n    if s.isdigit():\n        print(int(s))","note":".isdigit() skips the a before it can crash.","ok":false,"out":"1\n2"}]},{"id":"2-38","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"c = 0\nfor i in range(4):\n    for j in range(10):\n        if j == 3:\n            break\n        c += 1\nprint(c)","note":"break only exits the INNER loop. 3 counts x 4 outer passes = 12.","ok":true,"out":"12"},{"code":"c = 0\nfor i in range(4):\n    for j in range(10):\n        c += 1\n    if c >= 12:\n        break\nprint(c)","note":"c is 10 after one pass, then 20, then the outer break.","ok":false,"out":"20"},{"code":"c = 0\nfor i in range(4):\n    for j in range(10):\n        if j == 3:\n            continue\n        c += 1\nprint(c)","note":"continue skips only j = 3: 9 x 4 = 36.","ok":false,"out":"36"},{"code":"c = 0\nfor i in range(4):\n    if i == 3:\n        break\n    for j in range(3):\n        c += 1\nprint(c)","note":"The outer loop breaks at i = 3: 3 x 3 = 9.","ok":false,"out":"9"}],"target":"12"},{"id":"2-39","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def has_e(word):\n    for c in word:\n        if c == \"e\":\n            return True\n    return False\n\nprint(has_e(\"fuse\"))","note":"It checks every letter and finds the e.","ok":true,"out":"True"},{"code":"def has_e(word):\n    for c in word:\n        if c == \"e\":\n            return True\n    return False\n\nprint(has_e(\"bomb\"))","note":"bomb has no e.","ok":false,"out":"False"},{"code":"def has_e(word):\n    for c in word:\n        if c == \"e\":\n            return True\n        else:\n            return False\n\nprint(has_e(\"fuse\"))","note":"TRAP! It returns on the first letter, f, without checking the rest.","ok":false,"out":"False"},{"code":"def has_e(word):\n    for c in word:\n        if c == \"e\":\n            print(True)\n\nprint(has_e(\"fuse\"))","note":"It prints True, but returns None.","ok":false,"out":"True\nNone"}],"target":"True"},{"id":"2-40","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"best = 0\nfor c in \"4629\":\n    if int(c) > best and int(c) < 9:\n        best = int(c)\nprint(best)","note":"The biggest digit that is under 9 is 6.","ok":true,"out":"6"},{"code":"best = 0\nfor c in \"4629\":\n    if int(c) > best:\n        best = int(c)\nprint(best)","note":"No upper limit, so 9 wins.","ok":false,"out":"9"},{"code":"best = 0\nfor c in \"4629\":\n    if c > best:\n        best = c\nprint(best)","note":"c is a string. Comparing a str with an int crashes.","ok":false,"out":"TypeError"},{"code":"best = 9\nfor c in \"4629\":\n    if int(c) < best:\n        best = int(c)\nprint(best)","note":"This finds the smallest digit.","ok":false,"out":"2"}],"target":"6"},{"id":"2-41","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"t = 3\nwhile t > 0:\n    print(t)\n    t -= 1\nprint(\"Liftoff\")","note":"Print first, then subtract.","ok":true,"out":"3\n2\n1\nLiftoff"},{"code":"t = 3\nwhile t > 0:\n    t -= 1\n    print(t)\nprint(\"Liftoff\")","note":"It subtracts BEFORE printing.","ok":false,"out":"2\n1\n0\nLiftoff"},{"code":"t = 3\nwhile t >= 0:\n    print(t)\n    t -= 1\nprint(\"Liftoff\")","note":">= 0 includes the 0.","ok":false,"out":"3\n2\n1\n0\nLiftoff"},{"code":"t = 3\nwhile t > 0:\n    print(t)\n    t -= 1\n    if t == 1:\n        break\nprint(\"Liftoff\")","note":"break fires when t drops to 1, before it prints.","ok":false,"out":"3\n2\nLiftoff"}],"target":"3\n2\n1\nLiftoff"},{"id":"2-42","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def join3(a, b, c, sep=\"-\"):\n    return a + sep + b + sep + c\n\nprint(join3(\"a\", \"b\", \"c\", \"\"))","note":"The 4th argument replaces the default sep with \"\".","ok":true,"out":"abc"},{"code":"def join3(a, b, c, sep=\"-\"):\n    return a + sep + b + sep + c\n\nprint(join3(\"a\", \"b\", \"c\"))","note":"sep uses its default dash.","ok":false,"out":"a-b-c"},{"code":"def join3(a, b, c, sep=\"-\"):\n    return a + sep + b + sep + c\n\nprint(join3(\"a\", \"b\", \"c\", sep=\" \"))","note":"sep is a space.","ok":false,"out":"a b c"},{"code":"def join3(a, b, c, sep=\"-\"):\n    return a + sep + b + sep + c\n\nprint(join3(\"c\", \"b\", \"a\", \"\"))","note":"The letters were passed in reverse.","ok":false,"out":"cba"}],"target":"abc"},{"id":"2-43","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"for i in range(3):\n    if i == 1:\n        return i","note":"return only works inside a function: SyntaxError.","ok":true,"out":"SyntaxError"},{"code":"for i in range(3):\n    if i == 1:\n        break\nprint(i)","note":"break leaves the loop with i still 1.","ok":false,"out":"1"},{"code":"def f():\n    for i in range(3):\n        if i == 1:\n            return i\n\nprint(f())","note":"Inside a function, return is fine.","ok":false,"out":"1"},{"code":"for i in range(3):\n    if i == 1:\n        continue\nprint(i)","note":"The loop finishes, so i ends at 2.","ok":false,"out":"2"}]},{"id":"2-44","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"x = 5\nif x > 3:\n    break\nprint(x)","note":"break only works inside a loop. An if is not a loop.","ok":true,"out":"SyntaxError"},{"code":"x = 5\nwhile x > 3:\n    break\nprint(x)","note":"break leaves the while right away.","ok":false,"out":"5"},{"code":"x = 5\nif x > 3:\n    pass\nprint(x)","note":"pass does nothing, which is allowed anywhere.","ok":false,"out":"5"},{"code":"x = 5\nwhile x > 3:\n    x -= 1\nprint(x)","note":"5, 4, 3. It stops when x is 3.","ok":false,"out":"3"}]},{"id":"2-45","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"hits = 0\nfor i in range(1, 13):\n    if i % 3 == 0:\n        if i % 2 == 0:\n            hits += 1\nprint(hits)","note":"Both conditions must be True: 6 and 12.","ok":true,"out":"2"},{"code":"hits = 0\nfor i in range(1, 13):\n    if i % 3 == 0 or i % 2 == 0:\n        hits += 1\nprint(hits)","note":"or counts either: 2, 3, 4, 6, 8, 9, 10, 12.","ok":false,"out":"8"},{"code":"hits = 0\nfor i in range(1, 13):\n    if i % 3 == 0:\n        hits += 1\nprint(hits)","note":"Just multiples of 3: 3, 6, 9, 12.","ok":false,"out":"4"},{"code":"hits = 0\nfor i in range(1, 13):\n    if i % 3 == 0 and i % 4 == 0:\n        hits += 1\nprint(hits)","note":"Only 12 is divisible by both 3 and 4.","ok":false,"out":"1"}],"target":"2"},{"id":"2-46","kind":"E","prompt":"Cut the wire whose ENTIRE output is exactly:","wires":[{"code":"a = 1\nb = 1\nfor i in range(5):\n    print(a)\n    c = a + b\n    a = b\n    b = c","note":"Fibonacci: each number is the sum of the two before it.","ok":true,"out":"1\n1\n2\n3\n5"},{"code":"a = 1\nb = 1\nfor i in range(5):\n    print(a)\n    a = b\n    b = a + b","note":"a changes BEFORE b is computed, so b just doubles.","ok":false,"out":"1\n1\n2\n4\n8"},{"code":"a = 1\nb = 1\nfor i in range(5):\n    print(b)\n    c = a + b\n    a = b\n    b = c","note":"Printing b runs one step ahead.","ok":false,"out":"1\n2\n3\n5\n8"},{"code":"a = 1\nb = 1\nfor i in range(4):\n    print(a)\n    c = a + b\n    a = b\n    b = c","note":"Only four passes.","ok":false,"out":"1\n1\n2\n3"}],"target":"1\n1\n2\n3\n5"},{"id":"2-47","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"n = 2\nwhile n < 100:\n    n *= 2\n    if n > 5:\n        break\nprint(n)","note":"2 becomes 4, then 8. 8 > 5, so it breaks.","ok":true,"out":"8"},{"code":"n = 2\nwhile n < 100:\n    if n >= 4:\n        break\n    n *= 2\nprint(n)","note":"The check comes first: at 4 it breaks before doubling.","ok":false,"out":"4"},{"code":"n = 2\nwhile n < 100:\n    n *= 2\nprint(n)","note":"No break, so it doubles until it passes 100.","ok":false,"out":"128"},{"code":"n = 2\nwhile n < 100:\n    n += 2\n    if n > 5:\n        break\nprint(n)","note":"Adds 2 instead: 4, then 6.","ok":false,"out":"6"}],"target":"8"},{"id":"2-48","kind":"L","prompt":"Cut the wire that prints exactly 1 line.","wires":[{"code":"for i in range(4):\n    print(i, end=\" \")","note":"end=\" \" means no newline. Everything is on one line.","ok":true,"out":"0 1 2 3 "},{"code":"for i in range(4):\n    print(i, \" \")","note":"\" \" is just another item to print. Each print still ends the line: 4 lines.","ok":false,"out":"0  \n1  \n2  \n3  "},{"code":"for i in range(2):\n    print(i, end=\"\\n\")","note":"\"\\n\" is the normal ending: two lines.","ok":false,"out":"0\n1"},{"code":"for i in range(3):\n    print(i, end=\" \")\n    print()","note":"The empty print() ends each line: 3 lines.","ok":false,"out":"0 \n1 \n2 "}]},{"id":"2-49","kind":"P","prompt":"Cut the wire that prints:","wires":[{"code":"def check(n):\n    if n > 5:\n        return \"big\"\n\nprint(check(3))","note":"3 > 5 is False, so the function ends without a return: None.","ok":true,"out":"None"},{"code":"def check(n):\n    if n > 5:\n        return \"big\"\n\nprint(check(8))","note":"8 > 5, so it returns big.","ok":false,"out":"big"},{"code":"def check(n):\n    if n > 5:\n        return \"big\"\n    return \"small\"\n\nprint(check(3))","note":"The second return handles small numbers.","ok":false,"out":"small"},{"code":"def check(n):\n    if n > 5:\n        return \"big\"\n    print(\"small\")\n\ncheck(3)","note":"It prints small, and the None return is never printed.","ok":false,"out":"small"}],"target":"None"},{"id":"2-50","kind":"C","prompt":"Cut the wire that CRASHES with an error.","wires":[{"code":"def score():\n    print(10)\n\nprint(score() + 5)","note":"score() prints 10 but returns None. None + 5 crashes.","ok":true,"out":"10\nTypeError"},{"code":"def score():\n    return 10\n\nprint(score() + 5)","note":"It returns 10: 10 + 5 = 15.","ok":false,"out":"15"},{"code":"def score():\n    return \"10\"\n\nprint(score() + \"5\")","note":"Two strings joined.","ok":false,"out":"105"},{"code":"def score():\n    return 10\n\nprint(str(score()) + \"5\")","note":"str() turns 10 into text, then joins it with 5.","ok":false,"out":"105"}]}]}];
+
+const COLORS = [
+  {n:"RED",c:"#ff4d4d"},{n:"BLUE",c:"#4d8dff"},{n:"YELLOW",c:"#ffd23f"},
+  {n:"GREEN",c:"#3df58a"},{n:"WHITE",c:"#e9eef0"},{n:"PURPLE",c:"#b07cff"},{n:"ORANGE",c:"#ff8a2a"}
+];
+const QS = new URLSearchParams(location.search);
+const MOCK = QS.has("mock");
+const LIVE_OK = MOCK || !!(FIREBASE_CONFIG && FIREBASE_CONFIG.apiKey);
+const COUNTIN_MS = 6000;   // countdown before every live round
+const MAX_MISSES = 4;      // the 4th miss detonates the bomb
+const PENALTY = 15;        // seconds lost per miss
+const CLOCKS = [ {key:"ninja",name:"Ninja",s:60}, {key:"mystic",name:"Mystic",s:120}, {key:"grasshopper",name:"Grasshopper",s:180} ];
+const clockOf = k => CLOCKS.find(c=>c.key===k) || CLOCKS[2];
+const topicOf = R => TOPICS.find(t=>t.key===R.topic) || {name:"",ch:""};
+const rLabel = R => `${topicOf(R).name} · Level ${R.level} · ${R.name}`;
+function clockButtons(el, sel, onPick){
+  el.innerHTML=CLOCKS.map(c=>`<button class="clk" data-k="${c.key}" aria-pressed="${c.key===sel}"><b>${c.name.toUpperCase()}</b><span>${fmt(c.s)}</span></button>`).join("");
+  el.querySelectorAll(".clk").forEach(b=>b.onclick=()=>onPick(b.dataset.k));
+}
+
+/* ---------- helpers ---------- */
+const $ = id => document.getElementById(id);
+const shuffle = a => { a = a.slice(); for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+/* ---------- question bank draw ---------- */
+const MODS_PER_GAME = 5;
+const KIND_CAP = {P:3};   // at most 3 "prints" modules, 2 of any other kind, so every game has variety
+function rngFrom(seed){ let h=1779033703^seed.length; for(let i=0;i<seed.length;i++){ h=Math.imul(h^seed.charCodeAt(i),3432918353); h=h<<13|h>>>19; }
+  let a=h>>>0; return ()=>{ a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const shuffleR = (a,rnd) => { a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(rnd()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+function drawMods(R, rnd, avoid){
+  const order=shuffleR(R.bank, rnd||Math.random);
+  const pool=avoid ? [...order.filter(m=>!avoid.has(m.id)), ...order.filter(m=>avoid.has(m.id))] : order;
+  const pick=[], cnt={};
+  for(const m of pool){ if(pick.length>=MODS_PER_GAME) break; if((cnt[m.kind]||0)>=(KIND_CAP[m.kind]||2)) continue; cnt[m.kind]=(cnt[m.kind]||0)+1; pick.push(m); }
+  for(const m of pool){ if(pick.length>=MODS_PER_GAME) break; if(!pick.includes(m)) pick.push(m); }
+  return pick;
+}
+// solo: avoid modules this squad has already seen until the bank runs low
+function drawSolo(R){
+  const key="bst_seen_"+R.id; let seen=ls.get(key,[])||[];
+  if(R.bank.length-seen.length<MODS_PER_GAME) seen=[];
+  const pick=drawMods(R, Math.random, new Set(seen));
+  ls.set(key,[...seen,...pick.map(m=>m.id)]);
+  return pick;
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtT = s => { s=Math.max(0,s); const m=Math.floor(s/60), sec=Math.floor(s%60), t=Math.floor((s*10)%10); return `${m}:${String(sec).padStart(2,"0")}.${t}`; };
+const fmt = s => { s=Math.max(0,s); const m=Math.floor(s/60), sec=Math.floor(s%60); return s<10 ? `0:0${sec}.${Math.floor((s*10)%10)}` : `${m}:${String(sec).padStart(2,"0")}`; };
+const ls = { get(k,d=null){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+             set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+function hl(code){
+  const re = /(#.*$)|("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')|\b(def|return|for|in|while|if|elif|else|and|or|not|True|False|None|lambda|import|as|global|break|continue|pass)\b|\b(print|range|len|sum|int|str|float|list|tuple|dict|set|sorted|min|max|abs|round|type|zip|enumerate|reversed|bool)\b(?=\()|\b(\d+(?:\.\d+)?)\b/gm;
+  let out="", last=0, m;
+  while((m=re.exec(code))){
+    out += esc(code.slice(last,m.index));
+    const t = esc(m[0]);
+    out += m[1]?`<span class="cm">${t}</span>`: m[2]?`<span class="st">${t}</span>`: m[3]?`<span class="kw">${t}</span>`: m[4]?`<span class="bi">${t}</span>`:`<span class="nu">${t}</span>`;
+    last = re.lastIndex;
+  }
+  out += esc(code.slice(last));
+  return out.split("\n").map(l=>`<span class="ln">${l||" "}</span>`).join("");
+}
+
+/* ---------- sound ---------- */
+let ac=null, muted=false;
+function audio(){ if(!ac){ try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(ac&&ac.state==="suspended") ac.resume(); return ac; }
+function tone(f,d,type="square",v=.08,slide=0,delay=0){
+  if(muted) return; const a=audio(); if(!a) return;
+  const t=a.currentTime+delay, o=a.createOscillator(), g=a.createGain();
+  o.type=type; o.frequency.setValueAtTime(f,t); if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d);
+  g.gain.setValueAtTime(v,t); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+  o.connect(g).connect(a.destination); o.start(t); o.stop(t+d+.02);
+}
+function noise(d,v=.3,freq=1200,sweep=0){
+  if(muted) return; const a=audio(); if(!a) return;
+  const n=a.sampleRate*d, b=a.createBuffer(1,n,a.sampleRate), ch=b.getChannelData(0);
+  for(let i=0;i<n;i++) ch[i]=(Math.random()*2-1)*(1-i/n);
+  const s=a.createBufferSource(), f=a.createBiquadFilter(), g=a.createGain();
+  s.buffer=b; f.type="lowpass"; f.frequency.setValueAtTime(freq,a.currentTime); if(sweep) f.frequency.exponentialRampToValueAtTime(sweep,a.currentTime+d);
+  g.gain.value=v; s.connect(f).connect(g).connect(a.destination); s.start();
+}
+const SFX = {
+  tick:()=>tone(1400,.03,"square",.05),
+  tock:()=>{tone(1800,.04,"square",.07);tone(1800,.04,"square",.07,0,.12);},
+  snip:()=>{noise(.08,.4,5000);tone(2600,.05,"triangle",.06);},
+  good:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.14,"triangle",.12,0,i*.07)),
+  bad:()=>{tone(220,.45,"sawtooth",.14,-140);noise(.2,.2,800);},
+  boom:()=>{noise(2.2,.9,3000,60);tone(90,1.6,"sine",.5,-60);},
+  win:()=>[392,523,659,784,659,1047].forEach((f,i)=>tone(f,.22,"square",.07,0,i*.12)),
+  go:()=>tone(880,.25,"square",.1),
+  join:()=>[660,880].forEach((f,i)=>tone(f,.1,"triangle",.08,0,i*.08))
+};
+$("muteBtn").onclick=()=>{ muted=!muted; $("muteBtn").textContent="SOUND: "+(muted?"OFF":"ON"); $("muteBtn").setAttribute("aria-pressed",muted); };
+
+/* ---------- particle fx ---------- */
+const cv=$("fx"), cx=cv.getContext("2d"); let parts=[], fxOn=false;
+function sizeCv(){ cv.width=innerWidth*devicePixelRatio; cv.height=innerHeight*devicePixelRatio; cx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0); }
+addEventListener("resize",sizeCv); sizeCv();
+function burst(kind){
+  const W=innerWidth,H=innerHeight, n=kind==="boom"?220:160;
+  for(let i=0;i<n;i++){
+    if(kind==="boom"){ const a=Math.random()*Math.PI*2, s=4+Math.random()*14;
+      parts.push({x:W/2,y:H/2,vx:Math.cos(a)*s,vy:Math.sin(a)*s,g:.18,life:60+Math.random()*60,col:["#ffd36b","#ff6a00","#ff3b3b","#fff","#555"][i%5],r:2+Math.random()*5,sq:false});
+    } else {
+      parts.push({x:Math.random()*W,y:-20-Math.random()*H*.4,vx:(Math.random()-.5)*3,vy:2+Math.random()*4,g:.05,life:160+Math.random()*80,col:["#3df58a","#2ee6c9","#ffb627","#fff","#4d8dff"][i%5],r:4+Math.random()*5,sq:true,rot:Math.random()*6});
+    }
+  }
+  if(!fxOn){ fxOn=true; requestAnimationFrame(fxLoop); }
+}
+function fxLoop(){
+  cx.clearRect(0,0,innerWidth,innerHeight);
+  parts=parts.filter(p=>p.life-->0);
+  for(const p of parts){ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; cx.globalAlpha=Math.min(1,p.life/40); cx.fillStyle=p.col;
+    if(p.sq){ p.rot+=.1; cx.save(); cx.translate(p.x,p.y); cx.rotate(p.rot); cx.fillRect(-p.r/2,-p.r/4,p.r,p.r/2); cx.restore(); }
+    else { cx.beginPath(); cx.arc(p.x,p.y,p.r,0,7); cx.fill(); } }
+  cx.globalAlpha=1;
+  if(parts.length) requestAnimationFrame(fxLoop); else { fxOn=false; cx.clearRect(0,0,innerWidth,innerHeight); }
+}
+function flash(c){ const f=$("flash"); f.className="flash"; void f.offsetWidth; f.className="flash "+c; }
+function shake(el){ el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+
+/* =====================================================================
+   NETWORK — Firebase Realtime Database (or an in-browser mock for testing: ?mock)
+   ===================================================================== */
+const NET = (() => {
+  let offset=0, uid=null, ready=null, impl=null;
+  const loadScript = src => new Promise((res,rej)=>{ const s=document.createElement("script"); s.src=src; s.onload=res; s.onerror=()=>rej(new Error("Could not reach Firebase. Check the school network or try again.")); document.head.appendChild(s); });
+  async function initFirebase(){
+    const base="https://www.gstatic.com/firebasejs/10.12.2/";
+    await loadScript(base+"firebase-app-compat.js");
+    await loadScript(base+"firebase-auth-compat.js");
+    await loadScript(base+"firebase-database-compat.js");
+    if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+    const auth=firebase.auth();
+    const existing=await new Promise(res=>{ const un=auth.onAuthStateChanged(u=>{ un(); res(u); }); });
+    uid=(existing || (await auth.signInAnonymously()).user).uid;
+    const db=firebase.database();
+    db.ref(".info/serverTimeOffset").on("value", s=>{ offset=s.val()||0; });
+    impl={
+      set:(p,v)=>db.ref(p).set(v),
+      update:o=>db.ref().update(o),
+      get:async p=>(await db.ref(p).get()).val(),
+      on:(p,cb)=>{ const r=db.ref(p), h=s=>cb(s.val()); r.on("value",h,()=>{}); return ()=>r.off("value",h); }
+    };
+  }
+  function initMock(){
+    const KEY="bst_mockdb", ch=new BroadcastChannel("bst_mockdb");
+    try{ uid=sessionStorage.getItem("bst_mock_uid"); }catch(e){}
+    if(!uid){ uid="u"+Math.random().toString(36).slice(2,10); try{ sessionStorage.setItem("bst_mock_uid",uid); }catch(e){} }
+    const load=()=>{ try{ return JSON.parse(localStorage.getItem(KEY)||"{}"); }catch(e){ return {}; } };
+    const ks=p=>p.split("/").filter(Boolean);
+    const getAt=(t,p)=>{ const v=ks(p).reduce((o,k)=>o==null?null:(o[k]??null),t); return (v&&typeof v==="object"&&!Object.keys(v).length)?null:v; };
+    const setAt=(t,p,v)=>{ const k=ks(p); let o=t; k.slice(0,-1).forEach(x=>{ if(typeof o[x]!=="object"||o[x]===null) o[x]={}; o=o[x]; }); const last=k[k.length-1]; if(v==null) delete o[last]; else o[last]=JSON.parse(JSON.stringify(v)); };
+    const subs=new Set();
+    const notify=()=>{ const t=load(); subs.forEach(s=>{ const v=getAt(t,s.p), j=JSON.stringify(v); if(j!==s.last){ s.last=j; s.cb(v==null?null:JSON.parse(j)); } }); };
+    ch.onmessage=notify;
+    const commit=t=>{ localStorage.setItem(KEY,JSON.stringify(t)); ch.postMessage(1); setTimeout(notify,0); };
+    impl={
+      set:async(p,v)=>{ const t=load(); setAt(t,p,v); commit(t); },
+      update:async o=>{ const t=load(); for(const [p,v] of Object.entries(o)) setAt(t,p,v); commit(t); },
+      get:async p=>getAt(load(),p),
+      on:(p,cb)=>{ const s={p,cb,last:undefined}; subs.add(s); setTimeout(()=>{ const v=getAt(load(),p); s.last=JSON.stringify(v); cb(v); },0); return ()=>subs.delete(s); }
+    };
+  }
+  return {
+    init(){ if(!ready){ ready=(MOCK?Promise.resolve().then(initMock):initFirebase()).catch(e=>{ ready=null; throw e; }); } return ready.then(()=>uid); },
+    get uid(){ return uid; },
+    now(){ return Date.now()+offset; },
+    set:(p,v)=>impl.set(p,v), update:o=>impl.update(o), get:p=>impl.get(p), on:(p,cb)=>impl.on(p,cb)
+  };
+})();
+function netErr(e){
+  const c=(e&&(e.code||""))+" "+(e&&e.message||"");
+  if(/operation-not-allowed|admin-restricted/i.test(c)) return "Anonymous sign-in is off. Instructor: turn it on in Firebase under Authentication → Sign-in method → Anonymous.";
+  if(/permission.denied/i.test(c)) return "The database refused that. Instructor: check the Firebase rules.";
+  return (e&&e.message)||"Something went wrong connecting. Try again.";
+}
+
+/* =====================================================================
+   APP STATE + SCREENS
+   ===================================================================== */
+let MODE="solo";          // solo | live (student) | host (instructor)
+let G=null;               // the current game
+const L={ code:null, name:null, state:null, squads:{}, results:{}, unsubs:[], sbKey:null, sbClosed:null, ending:null, autoNext:null };
+const SCREENS=["home","intro","lobby","game","result","host"];
+function show(id){ SCREENS.forEach(s=>$(s).hidden=(s!==id)); scrollTo({top:0}); }
+const rk = r => "r"+r;    // result keys (string keys keep Firebase from turning them into arrays)
+const roundById = id => ROUNDS.find(r=>r.id===id);
+
+/* ---------- home ---------- */
+(function initHome(){
+  let sess=null; try{ sess=JSON.parse(sessionStorage.getItem("bst_live_join")||"null"); }catch(e){}
+  const saved=sess||ls.get("bst_join",{})||{};
+  $("joinCode").value=(QS.get("room")||saved.code||"").toUpperCase().slice(0,4);
+  $("joinName").value=saved.name||ls.get("bst_team","")||"";
+  if(!LIVE_OK){ $("liveNote").hidden=false; $("joinBtn").disabled=true; $("hostBtn").disabled=true; }
+  const hr=ls.get("bst_host_room");
+  if(LIVE_OK && hr){ $("resumeBtn").hidden=false; $("resumeBtn").textContent=`RESUME ROOM ${hr}`; }
+  // a refresh in the same tab drops you straight back into your game
+  let ss=null; try{ ss=sessionStorage.getItem("bst_live"); }catch(e){}
+  if(LIVE_OK && ss==="join" && $("joinCode").value && $("joinName").value) setTimeout(()=>$("joinBtn").click(),0);
+  if(LIVE_OK && ss==="host" && hr) setTimeout(()=>$("resumeBtn").click(),0);
+})();
+const ssSet = v => { try{ sessionStorage.setItem("bst_live",v); }catch(e){} };
+const homeErr = (t,ok) => { $("homeErr").textContent=t||""; $("homeErr").style.color=ok?"var(--teal)":""; };
+$("homeBtn").onclick=()=>{ if(MODE==="solo" && (!G || G.over)) show("home"); };
+$("practiceBtn").onclick=()=>{ MODE="solo"; drawRounds(); show("intro"); };
+$("joinCode").addEventListener("input",e=>{ e.target.value=e.target.value.toUpperCase().replace(/[^A-Z]/g,""); });
+
+$("joinBtn").onclick=async()=>{
+  const code=$("joinCode").value.trim().toUpperCase(), name=$("joinName").value.trim().replace(/\s+/g," ");
+  if(!/^[A-Z]{4}$/.test(code)) return homeErr("Room codes are 4 letters. Check the projector.");
+  if(!name) return homeErr("Enter a squad name.");
+  audio(); homeErr("Connecting…",true); $("joinBtn").disabled=true;
+  try{
+    await NET.init();
+    const host=await NET.get(`rooms/${code}/host`);
+    if(!host){ $("joinBtn").disabled=false; return homeErr(`No game found with code ${code}. Check the projector.`); }
+    const rst=await NET.get(`rooms/${code}/state`);
+    if(!rst || rst.app!=="training"){ $("joinBtn").disabled=false; return homeErr(`Room ${code} is running a different Bomb Squad game. Ask your instructor for the right link.`); }
+    await NET.set(`rooms/${code}/squads/${NET.uid}`, {name, joined:NET.now()});
+    ls.set("bst_join",{code,name}); try{ sessionStorage.setItem("bst_live_join",JSON.stringify({code,name})); }catch(e){}
+    MODE="live"; L.code=code; L.name=name; homeErr("");
+    $("roomTag").hidden=false; $("roomTag").textContent=`ROOM ${code}`;
+    ssSet("join"); SFX.join(); showLobby(); subscribe();
+  }catch(e){ homeErr(netErr(e)); }
+  $("joinBtn").disabled=false;
+};
+
+const CODE_ABC="ABCDEFGHJKLMNPQRSTUVWXYZ";
+$("hostBtn").onclick=async()=>{
+  audio(); homeErr("Creating a room…",true); $("hostBtn").disabled=true;
+  try{
+    await NET.init();
+    let code="";
+    for(let i=0;i<12;i++){ code=Array.from({length:4},()=>CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join(""); if(!(await NET.get(`rooms/${code}/host`))) break; }
+    await NET.update({[`rooms/${code}/host`]:NET.uid, [`rooms/${code}/state`]:{phase:"lobby",round:1,nonce:"",startAt:0,app:"training"}});
+    ls.set("bst_host_room",code); homeErr(""); enterHost(code);
+  }catch(e){ homeErr(netErr(e)); }
+  $("hostBtn").disabled=false;
+};
+$("resumeBtn").onclick=async()=>{
+  const code=ls.get("bst_host_room"); audio(); homeErr("Reconnecting…",true);
+  try{
+    await NET.init();
+    const host=await NET.get(`rooms/${code}/host`);
+    if(host!==NET.uid) return homeErr("This browser isn't the host of that room anymore. Host a new game.");
+    homeErr(""); enterHost(code);
+  }catch(e){ homeErr(netErr(e)); }
+};
+
+/* ---------- live subscriptions ---------- */
+function subscribe(){
+  L.unsubs.forEach(u=>u()); L.unsubs=[];
+  const b=`rooms/${L.code}`;
+  L.unsubs.push(NET.on(b+"/squads", v=>{ L.squads=v||{}; onData(); }));
+  L.unsubs.push(NET.on(b+"/results", v=>{ L.results=v||{}; onData(); }));
+  L.unsubs.push(NET.on(b+"/state", v=>{ L.state=v||{phase:"lobby",round:1}; onState(); }));
+}
+function onData(){
+  if(MODE==="live"){
+    if(L.squads && NET.uid && !L.squads[NET.uid] && L.name){ NET.set(`rooms/${L.code}/squads/${NET.uid}`,{name:L.name,joined:NET.now()}).catch(()=>{}); }
+    renderLobby(); renderWait(); if(!$("sbOv").hidden) renderOverlay();
+  } else if(MODE==="host") hostRender();
+}
+function onState(){
+  if(MODE==="host") return hostRender();
+  if(MODE!=="live") return;
+  const st=L.state;
+  if(st.phase==="playing"){
+    if(G && G.nonce===st.nonce) return;                    // already in this round
+    if(!roundById(st.round)){ showLobby("This room is running a different Bomb Squad game."); return; }
+    const prog=ls.get(progKey(st.nonce));
+    hideOverlay();
+    if(prog && prog.done){ showLobby(`Your Round ${st.round} score is locked in. Waiting for the other squads.`); return; }
+    startLive(st, prog);
+  } else if(st.phase==="scoreboard" || st.phase==="final"){
+    if(G && !G.over && G.frozen==null) end(false,"Your instructor ended the round.");
+    const key=st.phase+":"+(st.nonce||"")+":"+st.round;
+    if(L.sbClosed!==key) showOverlay(key);
+  } else {
+    // instructor sent everyone back to the lobby: abort any round in progress (no score, no explosion)
+    hideOverlay(); $("countOv").hidden=true; L.sbClosed=null;
+    if(G && !G.over){ G.over=true; $("stamp").hidden=true; }
+    G=null; showLobby();
+  }
+}
+
+/* ---------- student lobby + waiting ---------- */
+function showLobby(msg){
+  $("lbCode").textContent=`ROOM ${L.code}`;
+  $("lbTitle").textContent=`You're in, ${L.name}.`;
+  $("lbMsg").textContent=msg||"Waiting for your instructor to start the round. Eyes up!";
+  renderLobby(); show("lobby");
+}
+function renderLobby(){
+  const sq=Object.entries(L.squads||{});
+  $("lbCount").textContent=`${sq.length} SQUAD${sq.length===1?"":"S"} IN THE ROOM`;
+  $("lbSquads").innerHTML=sq.sort((a,b)=>(a[1].joined||0)-(b[1].joined||0)).map(([id,s])=>`<span class="chip ${id===NET.uid?"me":""}">${esc(s.name||"Squad")}</span>`).join("");
+}
+function renderWait(){
+  if(MODE!=="live"||!G||!L.state) return;
+  const res=L.results[rk(G.R.id)]||{}, n=Object.keys(L.squads||{}).length, d=Object.keys(res).length;
+  $("liveWaitTxt").textContent=`Score locked in. ${d} of ${n} squads finished. The scoreboard appears when the round ends.`;
+}
+
+/* ---------- scoreboard ---------- */
+function roundRows(r){
+  const res=L.results[rk(r)]||{};
+  const rows=Object.entries(res).map(([id,x])=>({id,...x}));
+  rows.sort((a,b)=>(b.pts-a.pts)||(b.defused-a.defused)||(a.strikes-b.strikes));
+  Object.entries(L.squads||{}).forEach(([id,s])=>{ if(!res[id]) rows.push({id,name:s.name,pts:null}); });
+  return rows;
+}
+function overallRows(){
+  const t={};
+  Object.values(L.results||{}).forEach(map=>Object.entries(map||{}).forEach(([id,x])=>{ const o=t[id]||(t[id]={id,name:x.name,pts:0,rounds:0}); o.pts+=x.pts||0; o.rounds++; }));
+  Object.entries(L.squads||{}).forEach(([id,s])=>{ if(!t[id]) t[id]={id,name:s.name,pts:0,rounds:0}; else t[id].name=s.name; });
+  return Object.values(t).sort((a,b)=>b.pts-a.pts);
+}
+function sbHTML(r){
+  const me=MODE==="live"?NET.uid:null;
+  const list=(rows,isRound)=>rows.map((x,i)=>{
+    const scored=x.pts!=null;
+    const cls=`row ${x.id===me?"me":""} ${scored&&x.pts>0&&i<3?"p"+(i+1):""}`;
+    const tm=isRound?(scored?(x.win?fmtT(x.left):`<span class="bm">BOOM · ${x.defused}/5</span>`):"no score"):`${x.rounds} round${x.rounds===1?"":"s"}`;
+    return `<li class="${cls}" style="--d:${i*90}ms"><span class="rk">${scored?i+1:"–"}</span><span class="nm">${esc(x.name||"Squad")}${x.id===me?"<em>YOU</em>":""}</span><span class="tm">${tm}</span><span class="pt">${scored?x.pts:"—"}</span></li>`;
+  }).join("") || `<li class="row empty">No squads yet.</li>`;
+  const R=r?roundById(r):null;
+  return `<div class="sbhead"><div class="ey">${R?esc(rLabel(R).toUpperCase())+(L.state&&L.state.clock?" · "+clockOf(L.state.clock).name.toUpperCase():""):"ALL ROUNDS"}</div><h2>${R?"Scoreboard":"Overall standings"}</h2></div>
+    <div class="sbgrid ${R?"":"solo"}">${R?`<section><h3>This round</h3><ol class="sb">${list(roundRows(r),true)}</ol></section>`:""}
+    <section><h3>Overall · all rounds</h3><ol class="sb">${list(overallRows(),false)}</ol></section></div>`;
+}
+function setHTML(el,html){ if(el._h!==html){ el._h=html; el.innerHTML=html; } }
+function showOverlay(key){
+  const first=L.sbKey!==key; L.sbKey=key;
+  renderOverlay(); $("sbOv").hidden=false; $("countOv").hidden=true;
+  if(first){
+    SFX.win();
+    const rows=L.state.phase==="final"?overallRows():roundRows(L.state.round);
+    const idx=rows.findIndex(x=>x.id===NET.uid);
+    if(idx>-1 && idx<3 && rows[idx].pts>0) setTimeout(()=>burst("confetti"),400);
+  }
+}
+function renderOverlay(){ const st=L.state; setHTML($("sbContent"), sbHTML(st.phase==="final"?null:st.round)); }
+function hideOverlay(){ $("sbOv").hidden=true; }
+$("sbClose").onclick=()=>{ L.sbClosed=L.sbKey; hideOverlay(); if(!G) showLobby(); };
+
+/* =====================================================================
+   HOST DASHBOARD
+   ===================================================================== */
+function enterHost(code){
+  MODE="host"; L.code=code; ssSet("host");
+  $("roomTag").hidden=false; $("roomTag").textContent=`HOSTING ${code}`;
+  $("hostRound").innerHTML=TOPICS.map(t=>`<optgroup label="${esc(t.name)} (${t.ch})">${ROUNDS.filter(r=>r.topic===t.key).map(r=>`<option value="${r.id}">${esc(t.name)} ${r.level}: ${esc(r.name)}</option>`).join("")}</optgroup>`).join("");
+  L.clock=ls.get("bst_host_clock","grasshopper"); drawHostClocks();
+  $("hCode").textContent=code;
+  const url=location.origin+location.pathname+`?room=${code}`+(MOCK?"&mock":"");
+  $("hUrl").textContent=url.replace(/^https?:\/\//,"");
+  $("copyBtn").onclick=()=>{ const done=()=>{ $("copyBtn").textContent="COPIED"; setTimeout(()=>$("copyBtn").textContent="COPY LINK",1500); };
+    (navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(done,()=>{ const r=document.createRange(); r.selectNodeContents($("hUrl")); getSelection().removeAllRanges(); getSelection().addRange(r); }); };
+  show("host"); subscribe();
+  clearInterval(L.tick); L.tick=setInterval(hostTick,200);
+}
+const stPath = () => `rooms/${L.code}/state`;
+function drawHostClocks(){
+  const playing=L.state&&L.state.phase==="playing";
+  clockButtons($("hClocks"), L.clock, k=>{ if(L.state&&L.state.phase==="playing") return; L.clock=k; ls.set("bst_host_clock",k); drawHostClocks(); hostTick(); });
+  $("hClocks").querySelectorAll(".clk").forEach(b=>b.disabled=!!playing);
+}
+$("hStart").onclick=()=>{
+  const r=+$("hostRound").value; if(!roundById(r)) return; const nonce=Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  audio();
+  const ck=clockOf(L.clock);
+  NET.update({[stPath()]:{phase:"playing",round:r,startAt:NET.now()+COUNTIN_MS,nonce,clock:ck.key,time:ck.s,app:"training"}, [`rooms/${L.code}/results/${rk(r)}`]:null}).catch(e=>alertHost(netErr(e)));
+};
+$("hEnd").onclick=()=>{ const st=L.state; if(st&&st.phase==="playing") NET.set(stPath(),{...st,phase:"scoreboard"}); };
+$("hFinal").onclick=()=>{ const st=L.state||{}; NET.set(stPath(),{...st,phase:"final"}); };
+let lobbyArm=0;
+$("hLobby").onclick=()=>{
+  const st=L.state||{};
+  if(st.phase==="playing" && Date.now()-lobbyArm>3000){   // mid-round: ask for a second click
+    lobbyArm=Date.now(); $("hLobby").textContent="CLICK AGAIN: CANCEL ROUND";
+    setTimeout(()=>$("hLobby").textContent="BACK TO LOBBY",3000); return;
+  }
+  lobbyArm=0; $("hLobby").textContent="BACK TO LOBBY";
+  const up={[stPath()]:{...st,phase:"lobby",nonce:"",startAt:0}};
+  if(st.phase==="playing") up[`rooms/${L.code}/results/${rk(st.round)}`]=null;   // a cancelled round doesn't count
+  L.ending=null; NET.update(up).catch(e=>alertHost(netErr(e)));
+};
+let clearArm=0;
+$("hClear").onclick=()=>{
+  if(Date.now()-clearArm>3000){ clearArm=Date.now(); $("hClear").textContent="CLICK AGAIN TO CLEAR"; setTimeout(()=>$("hClear").textContent="CLEAR ALL SCORES",3000); return; }
+  clearArm=0; $("hClear").textContent="CLEAR ALL SCORES"; NET.set(`rooms/${L.code}/results`,null);
+};
+function alertHost(t){ $("hPhase").textContent=t; }
+function hostTick(){
+  const st=L.state; if(!st) return;
+  const R=roundById(st.round), now=NET.now(), t=$("hTimer");
+  if(st.phase==="playing" && R){
+    const endAt=st.startAt+(st.time||180)*1000;
+    if(now<st.startAt){ t.textContent="0:0"+Math.ceil((st.startAt-now)/1000); t.classList.remove("panic"); }
+    else { const left=(endAt-now)/1000; t.textContent=fmt(left); t.classList.toggle("panic",left<=15&&left>0); }
+    // auto-end: everyone finished, or the clock (plus a short grace) has run out
+    const res=L.results[rk(st.round)]||{}, ids=Object.keys(L.squads||{});
+    const allDone=ids.length>0 && ids.every(id=>res[id]);
+    if((allDone || now>endAt+2500) && L.ending!==st.nonce){
+      L.ending=st.nonce;
+      setTimeout(()=>{ const s=L.state; if(s&&s.nonce===st.nonce&&s.phase==="playing") NET.set(stPath(),{...s,phase:"scoreboard"}); }, allDone?1500:0);
+    }
+  } else { t.textContent=st.phase==="scoreboard"?"DONE":fmt(clockOf(L.clock).s); t.classList.remove("panic"); }
+}
+function hostRender(){
+  const st=L.state||{phase:"lobby",round:1};
+  const R=roundById(st.round);
+  const lab=R?`${topicOf(R).name.toUpperCase()} ${R.level}`:"";
+  $("hPhase").textContent={lobby:"LOBBY · SQUADS JOINING",playing:`${lab} LIVE · ${clockOf(st.clock).name.toUpperCase()}`,scoreboard:`${lab} · SCOREBOARD`,final:"OVERALL STANDINGS"}[st.phase]||"";
+  drawHostClocks();
+  const playing=st.phase==="playing";
+  $("hStart").disabled=playing; $("hEnd").disabled=!playing; $("hostRound").disabled=playing;
+  $("hStart").textContent=startLabel();
+  if(st.phase==="scoreboard" && L.autoNext!==st.nonce){
+    L.autoNext=st.nonce; const nx=roundById(st.round+1); if(nx){ $("hostRound").value=nx.id; $("hStart").textContent=startLabel(); }
+    SFX.win();
+  }
+  const sb=$("hostSb");
+  if(st.phase==="scoreboard"||st.phase==="final"){ sb.hidden=false; sb.className="sbbig"; setHTML(sb, sbHTML(st.phase==="final"?null:st.round)); }
+  else sb.hidden=true;
+  // race board
+  const sq=Object.entries(L.squads||{}), res=L.results[rk(st.round)]||{};
+  $("hCount").textContent=`${sq.length} squad${sq.length===1?"":"s"}${playing?` · ${Object.keys(res).length} finished`:""}`;
+  const rows=sq.map(([id,s])=>{
+    const live=s.live&&s.live.n===st.nonce?s.live:null, r=res[id];
+    let cls="wait", txt="READY", mod=0, strikes=0;
+    if(r){ mod=r.defused; strikes=r.strikes; cls=r.win?"done":"boom"; txt=r.win?`DEFUSED ${fmtT(r.left)}`:"BOOM"; }
+    else if(live && st.phase==="playing"){ mod=live.mod; strikes=live.strikes; cls="play"; txt=`MODULE ${Math.min(5,live.mod+1)}/5`; }
+    return {id,name:s.name,cls,txt,mod,strikes,score:r?r.pts+1:(live?live.mod/10:-1)};
+  }).sort((a,b)=>b.score-a.score||(a.name||"").localeCompare(b.name||""));
+  setHTML($("race"), rows.map(x=>`<div class="racer"><span class="nm">${esc(x.name||"Squad")}</span>
+    <span class="pips">${[0,1,2,3,4].map(i=>`<i class="${i<x.mod?"on":""}"></i>`).join("")}</span>
+    <span class="rx">${"X".repeat(x.strikes||0)}</span><span class="rs ${x.cls}">${x.txt}</span></div>`).join("") || `<div class="racer empty">No squads yet. Students join with the room code above.</div>`);
+}
+function startLabel(){ const R=roundById(+$("hostRound").value); return R?`START ${topicOf(R).name.toUpperCase()} ${R.level}`:"START ROUND"; }
+$("hostRound").onchange=()=>{ $("hStart").textContent=startLabel(); };
+
+/* =====================================================================
+   PRACTICE MODE (solo)
+   ===================================================================== */
+let selRound=1, selClock=ls.get("bst_clock","grasshopper");
+const getBest = team => ls.get("bst_best3_"+team,{}) || {};
+function drawRounds(){
+  const best=getBest($("teamName").value.trim());
+  $("roundList").innerHTML = TOPICS.map(t=>`<div class="rgroup">${esc(t.name.toUpperCase())} · ${t.ch.toUpperCase()}</div>
+    <div class="lvrow">${ROUNDS.filter(r=>r.topic===t.key).map(r=>`<button class="lv" data-r="${r.id}" aria-pressed="${r.id===selRound}" title="${esc(r.name)}"><b>${r.level}</b><span>${best[r.id]?best[r.id]:"·"}</span></button>`).join("")}</div>`).join("");
+  $("roundList").querySelectorAll(".lv").forEach(b=>b.onclick=()=>{ selRound=+b.dataset.r; drawRounds(); });
+  const R=roundById(selRound);
+  $("selInfo").innerHTML=`<b>${esc(topicOf(R).name)} · Level ${R.level}: ${esc(R.name)}</b><span>${esc(R.topics)}</span><span class="bankinfo">BANK: ${R.bank.length} MODULES · ${MODS_PER_GAME} DRAWN PER GAME</span>`;
+  clockButtons($("pClocks"), selClock, k=>{ selClock=k; ls.set("bst_clock",k); drawRounds(); });
+  const tot=Object.values(best).reduce((a,b)=>a+b,0);
+  $("squadTotal").innerHTML=tot?`Squad best total: <b>${tot}</b> pts across ${Object.keys(best).length} of ${ROUNDS.length} levels`:"Score = time left on the clock. Level I is the warm-up, Level II turns up the heat.";
+}
+$("teamName").value=ls.get("bst_team","")||"";
+$("teamName").addEventListener("input",()=>drawRounds());
+$("startBtn").onclick=()=>{
+  const name=$("teamName").value.trim();
+  if(!name){ $("introErr").textContent="Enter a squad name."; $("teamName").focus(); return; }
+  $("introErr").textContent=""; ls.set("bst_team",name); audio(); startSolo(selRound);
+};
+
+/* =====================================================================
+   GAME ENGINE (shared by practice and live)
+   ===================================================================== */
+const progKey = nonce => `bst_prog_${L.code}_${nonce}`;
+function newGame(R, team, extra){
+  G={ R, team, mod:0, strikes:0, defused:0, penMs:0, deadline:0, over:false, lastSec:null, busy:false, frozen:null,
+      clock: MODE==="solo" ? ()=>performance.now() : ()=>NET.now(), ...extra,
+      mods:(extra.mods||drawMods(R)).map(m=>({...m, wires:shuffle(m.wires)})) };
+  G.mods.forEach(m=>{ const pal=shuffle(COLORS); m.wires=m.wires.map((w,i)=>({...w,col:pal[i]})); m.wrong=[]; });
+  $("gTeam").textContent=team; $("gRound").textContent=`${rLabel(R).toUpperCase()} · MISS −${PENALTY}s`;
+  paintStrikes();
+  $("gLevel").textContent=`${clockOf(G.clockKey).name.toUpperCase()} · ${fmt(G.time)}`;
+  $("timer").textContent=fmt(G.time); $("timer").classList.remove("panic");
+}
+function paintStrikes(){ for(let i=0;i<MAX_MISSES;i++) $("s"+i).classList.toggle("on", i<G.strikes); }
+function startSolo(id){
+  MODE="solo"; const ck=clockOf(selClock);
+  const R=roundById(id); newGame(R, $("teamName").value.trim(), {time:ck.s, clockKey:ck.key, mods:drawSolo(R)});
+  show("game"); drawLamps(); drawModule();
+  soloCountdown(()=>{ G.startAt=performance.now(); G.deadline=G.startAt+G.time*1000; requestAnimationFrame(loop); });
+}
+function soloCountdown(done){
+  const ov=$("countOv"), num=$("countNum"); ov.hidden=false; let n=3;
+  const step=()=>{ if(n===0){ num.textContent="GO"; SFX.go(); setTimeout(()=>{ov.hidden=true; done();},500); return; }
+    num.textContent=n; num.style.animation="none"; void num.offsetWidth; num.style.animation=""; SFX.tick(); n--; setTimeout(step,800); };
+  step();
+}
+function startLive(st, prog){
+  const R=roundById(st.round);
+  newGame(R, L.name, {live:true, nonce:st.nonce, time:st.time||180, clockKey:st.clock||"grasshopper", startAt:st.startAt, mods:drawMods(R, rngFrom(st.nonce))});
+  if(prog){ G.mod=G.defused=prog.defused||0; G.strikes=prog.strikes||0; G.penMs=prog.penMs||0; paintStrikes(); }
+  G.deadline=st.startAt+G.time*1000-G.penMs;
+  show("game"); drawLamps(); drawModule(); pushLive();
+  // synced countdown to the instructor's start time
+  const ov=$("countOv"), num=$("countNum"); let shown=null;
+  const wait=()=>{
+    if(!G || G.nonce!==st.nonce || G.over) { ov.hidden=true; return; }
+    const ms=st.startAt-NET.now();
+    if(ms>0){ ov.hidden=false; const n=Math.ceil(ms/1000); if(n!==shown){ shown=n; num.textContent=n; num.style.animation="none"; void num.offsetWidth; num.style.animation=""; SFX.tick(); } requestAnimationFrame(wait); }
+    else if(shown!=null && shown!=="GO"){ shown="GO"; num.textContent="GO"; SFX.go(); setTimeout(()=>{ ov.hidden=true; },450); requestAnimationFrame(loop); }
+    else { ov.hidden=true; requestAnimationFrame(loop); }
+  };
+  wait();
+}
+function saveProg(extra){ if(G&&G.live) ls.set(progKey(G.nonce),{defused:G.defused,strikes:G.strikes,penMs:G.penMs,...extra}); }
+function pushLive(st){ if(G&&G.live) NET.set(`rooms/${L.code}/squads/${NET.uid}/live`,{n:G.nonce,mod:G.defused,strikes:G.strikes,st:st||"playing"}).catch(()=>{}); }
+function drawLamps(){ $("lamps").innerHTML=G.mods.map((m,i)=>`<div class="lamp ${i<G.mod?"done":i===G.mod?"cur":""}"><i></i>MOD ${i+1}</div>`).join(""); }
+function drawModule(){
+  const m=G.mods[G.mod];
+  $("lcdEy").textContent=`MODULE ${G.mod+1} / ${G.mods.length}`;
+  $("lcdP").textContent=m.prompt;
+  const t=$("lcdT"); if(m.target!=null){ t.hidden=false; t.textContent=m.target; } else t.hidden=true;
+  $("bay").innerHTML=m.wires.map((w,i)=>`
+    <article class="card" style="--wc:${w.col.c}" id="card${i}">
+      <div class="wire"><span class="term"></span><span class="half l"></span><span class="half r"></span><span class="term"></span>
+        <span class="colorname">${w.col.n}</span><span class="spark"></span></div>
+      <pre class="code" aria-label="${w.col.n} wire code">${hl(w.code)}</pre>
+      <button class="cutbtn" data-i="${i}">&#9986; CUT ${w.col.n}</button>
+    </article>`).join("");
+  $("bay").querySelectorAll(".cutbtn").forEach(b=>b.onclick=()=>cut(+b.dataset.i));
+}
+function started(){ return !!(G && G.startAt!=null && G.deadline && G.clock()>=G.startAt); }
+function cut(i){
+  if(!G||G.over||G.busy||!started()) return;
+  const m=G.mods[G.mod], w=m.wires[i], card=$("card"+i);
+  card.classList.add("cut"); card.querySelector(".cutbtn").disabled=true; SFX.snip();
+  if(w.ok){
+    G.busy=true; card.classList.add("right"); G.defused++;
+    if(G.mod+1>=G.mods.length){ G.frozen=Math.max(0,(G.deadline-G.clock())/1000); $("timer").firstChild.nodeValue=fmtT(G.frozen); $("timer").classList.remove("panic"); }
+    saveProg(); pushLive();
+    setTimeout(()=>{ SFX.good(); flash("green"); $("stamp").hidden=false; $("bay").querySelectorAll(".cutbtn").forEach(b=>b.disabled=true); },180);
+    setTimeout(()=>{ $("stamp").hidden=true; if(!G) return; G.busy=false;
+      if(G.over) return;
+      if(G.mod+1>=G.mods.length) return end(true);
+      G.mod++; drawLamps(); drawModule(); },1300);
+  } else {
+    card.classList.add("wrong"); m.wrong.push(i);
+    G.strikes++; $("s"+(G.strikes-1)).classList.add("on");
+    G.deadline-=PENALTY*1000; G.penMs+=PENALTY*1000;
+    saveProg(); pushLive();
+    setTimeout(()=>{ SFX.bad(); },120); flash("red"); shake($("bombFrame")); shake(card);
+    const p=document.createElement("span"); p.className="penalty"; p.textContent=`−${PENALTY}s`; $("timer").appendChild(p); setTimeout(()=>p.remove(),1100);
+    card.querySelector(".cutbtn").innerHTML="&#10007; WRONG WIRE";
+    if(G.strikes>=MAX_MISSES) G.boomWhy=`That's ${MAX_MISSES} misses. The device detonated.`;
+    else if(G.deadline-G.clock()<=0) G.boomWhy="The miss penalty drained the clock to zero. The device detonated.";
+    if(G.boomWhy){ const g=G; $("timer").firstChild.nodeValue="0:00.0"; setTimeout(()=>{ if(G===g) end(false,g.boomWhy); },450); }
+  }
+}
+function loop(){
+  if(!G||G.over||G.frozen!=null) return;
+  const left=(G.deadline-G.clock())/1000;
+  const el=$("timer"); el.firstChild.nodeValue=fmt(left);
+  el.classList.toggle("panic",left<=15);
+  const sec=Math.ceil(left);
+  if(sec!==G.lastSec && left>0){ G.lastSec=sec; if(!G.busy){ left<=30 ? SFX.tock() : SFX.tick(); } }
+  if(G.boomWhy) return;   // a miss already set off the bomb; end() is on its way
+  if(left<=0){ el.firstChild.nodeValue="0:00.0"; return end(false,"Time ran out. The device detonated."); }
+  requestAnimationFrame(loop);
+}
+
+function end(win,why){
+  if(!G||G.over) return; G.over=true;
+  const left=win?G.frozen:0, pts=Math.round(left*10), g=G;
+  let best={}, rec=false, total=0;
+  if(g.live){
+    const res={name:g.team,pts,left:Math.round(left*10)/10,strikes:g.strikes,defused:g.defused,win:!!win};
+    saveProg({done:true});
+    NET.set(`rooms/${L.code}/results/${rk(g.R.id)}/${NET.uid}`,res).catch(()=>{});
+    pushLive(win?"done":"boom");
+  } else {
+    best=getBest(g.team);
+    if(win && pts>(best[g.R.id]||0)){ best[g.R.id]=pts; rec=true; ls.set("bst_best3_"+g.team,best); }
+    total=Object.values(best).reduce((a,b)=>a+b,0);
+  }
+  const go=()=>{
+    if(G!==g) return;
+    $("resBox").className="inner result "+(win?"win":"lose");
+    $("resTitle").textContent=win?"DEVICE DEFUSED":"KABOOM";
+    $("resSub").textContent=g.live?(win?`Clean work, ${g.team}. Your time is locked in.`:`${why} Check the debrief to see what went wrong.`)
+                                  :(win?`Clean work, ${g.team}.`:`${why} Check the debrief to see what went wrong.`);
+    $("rMods").textContent=`${g.defused}/${g.mods.length}`; $("rTime").textContent=fmtT(left);
+    $("rStrikes").textContent=g.strikes; $("rRound").textContent=`${topicOf(g.R).name.split(" ")[0]} ${g.R.level}`; $("rTeam").textContent=g.team;
+    $("rScore").textContent=fmtT(left); $("rPts").textContent=`${pts} pts`; $("rRec").hidden=!rec;
+    $("rFormula").textContent=win?`1 point per tenth of a second left. ${g.strikes?`Misses cost you ${g.strikes*PENALTY}s this round.`:"No misses. Perfect run!"}`:"The device exploded, so this round scores 0.";
+    $("liveWait").hidden=!g.live; $("boardWrap").hidden=!!g.live; $("btnRow").hidden=!!g.live;
+    if(!g.live){
+      $("boardTitle").textContent=`${topicOf(g.R).name.toUpperCase()} · BEST PER LEVEL`;
+      $("board").innerHTML=ROUNDS.filter(r=>r.topic===g.R.topic).map(r=>`<div class="cell ${best[r.id]?"has":""} ${r.id===g.R.id?"now":""}"><div class="rn">LEVEL ${r.level}</div><div class="bp">${best[r.id]||"—"}</div></div>`).join("");
+      $("bTotal").textContent=total;
+      const nx=roundById(g.R.id+1); $("nextBtn").hidden=!nx; if(nx) $("nextBtn").innerHTML=nx.topic===g.R.topic?`LEVEL ${nx.level} &rarr;`:`${esc(topicOf(nx).name.toUpperCase())} 1 &rarr;`;
+    } else renderWait();
+    drawDebrief(); show("result");
+    if(win){ SFX.win(); burst("confetti"); }
+  };
+  if(win){ setTimeout(go,200); }
+  else { SFX.boom(); const b=document.createElement("div"); b.className="boom"; document.body.appendChild(b); burst("boom"); shake(document.body); setTimeout(()=>b.remove(),1500); setTimeout(go,1100); }
+}
+function drawDebrief(){
+  $("debrief").innerHTML=G.mods.map((m,mi)=>{
+    const done=mi<G.defused;
+    return `<details ${mi===G.mod&&!done?"open":""}><summary>Module ${mi+1}: ${esc(m.prompt)} ${m.target!=null?`<code>${esc(m.target)}</code>`:""}
+      <span class="ok ${done?"y":"n"}">${done?(m.wrong.length?`DEFUSED · ${m.wrong.length} miss`:"CLEAN"):"NOT DEFUSED"}</span></summary>
+      <div class="dgrid">${m.wires.map(w=>`<div class="dw ${w.ok?"is":""}" style="--wc:${w.col.c}">
+        ${w.ok?`<div class="badge">&#10003; CORRECT WIRE (${w.col.n})</div>`:""}
+        <pre class="code">${hl(w.code)}</pre>
+        <div class="out"><b>Output:</b>\n${esc(w.out)}</div>
+        <div class="note">${esc(w.note)}</div></div>`).join("")}</div></details>`;
+  }).join("");
+}
+$("replayBtn").onclick=()=>startSolo(G.R.id);
+$("nextBtn").onclick=()=>{ selRound=G.R.id+1; startSolo(selRound); };
+$("menuBtn").onclick=()=>{ drawRounds(); show("intro"); };
+
+</script>
+</body>
+</html>
